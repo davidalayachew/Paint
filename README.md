@@ -6,7 +6,7 @@ Microsoft Paint is a bit frustrating for me. For example, why can't I draw in in
 
 Here is my priority list when it comes to building features.
 
-~~~
+
 
 SHOWSTOPPER -- PNG, GIF, Pen, Eraser, Magnifying Glass, Size options, Color Chooser (INCLUDING INVISIBLE INK FOR PNG AND GIF AT LEAST), Save (image), Open (image)
 
