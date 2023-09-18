@@ -25,6 +25,8 @@ public class GUI
    private static final KeyStroke DOWN             = KeyStroke.getKeyStroke(KeyEvent.VK_DOWN,   0, true);
    private static final KeyStroke LEFT             = KeyStroke.getKeyStroke(KeyEvent.VK_LEFT,   0, true);
    private static final KeyStroke RIGHT            = KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT,  0, true);
+   private static final KeyStroke SPACE_PRESS      = KeyStroke.getKeyStroke(KeyEvent.VK_SPACE,  0, false);
+   private static final KeyStroke SPACE_RELEASE    = KeyStroke.getKeyStroke(KeyEvent.VK_SPACE,  0, true);
    private static final Border ORIGINAL_BORDER     = new JButton().getBorder();
 
    private static final Function<String, Border> TITLED_BORDER =
@@ -45,6 +47,7 @@ public class GUI
    private int numPixelColumns = 5;
    private Color currentColor = Color.BLACK;
    private int penSize = 1;
+   private boolean coloring = false;
 
    public GUI()
    {
@@ -115,7 +118,7 @@ public class GUI
             cell.setBackground(Color.WHITE);
             cell.setBorder(ORIGINAL_BORDER);
             cell.setRolloverEnabled(false);
-            cell.addActionListener(event -> cell.setBackground(this.currentColor));
+            cell.addActionListener(event -> {cell.setBackground(this.currentColor); System.out.println(event);});
          
             final int currentIndex = (row * this.numPixelColumns) + column;
          
@@ -152,6 +155,13 @@ public class GUI
                                           )
                                     )
                               );
+                        
+                           if (gui.coloring)
+                           {
+                           
+                              cell.doClick();
+                           
+                           }
                         
                         }
                      
@@ -207,6 +217,43 @@ public class GUI
                this.setKeyBinding(cell, DOWN,   actionFunction);
                this.setKeyBinding(cell, LEFT,   actionFunction);
                this.setKeyBinding(cell, RIGHT,  actionFunction);
+            
+            }
+         
+            ADD_KEYBOARD_COLORING:
+            {
+            
+               final Function<KeyStroke, Action> actionFunction = 
+                  keyStroke ->
+                     new AbstractAction()
+                     {
+                     
+                        public void actionPerformed(final ActionEvent event)
+                        {
+                        
+                           if (!gui.coloring && keyStroke == SPACE_PRESS)
+                           {
+                           
+                              System.out.println("PRESSED SPACE");
+                              gui.coloring = true;
+                           
+                           }
+                           
+                           else if (keyStroke == SPACE_RELEASE)
+                           {
+                           
+                              System.out.println("RELEASED SPACE");
+                              gui.coloring = false;
+                           
+                           }
+                           
+                        }
+                     
+                     }
+                  ;
+            
+               this.setKeyBinding(cell, SPACE_PRESS, actionFunction);
+               this.setKeyBinding(cell, SPACE_RELEASE, actionFunction);
             
             }
          
