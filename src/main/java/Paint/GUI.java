@@ -118,7 +118,7 @@ public class GUI
             cell.setBackground(Color.WHITE);
             cell.setBorder(ORIGINAL_BORDER);
             cell.setRolloverEnabled(false);
-            cell.addActionListener(event -> {cell.setBackground(this.currentColor); System.out.println(event);});
+            cell.addActionListener(event -> cell.setBackground(this.currentColor));
          
             final int currentIndex = (row * this.numPixelColumns) + column;
          
@@ -223,7 +223,7 @@ public class GUI
             ADD_KEYBOARD_COLORING:
             {
             
-               final Function<KeyStroke, Action> actionFunction = 
+               final Function<KeyStroke, Action> actionFunction =
                   keyStroke ->
                      new AbstractAction()
                      {
@@ -246,7 +246,7 @@ public class GUI
                               gui.coloring = false;
                            
                            }
-                           
+                        
                         }
                      
                      }
@@ -392,18 +392,23 @@ public class GUI
                .addActionListener
                (
                   event ->
-                     button
-                        .setBackground
-                        (
-                           JColorChooser
-                              .showDialog
-                              (
-                                 button,
-                                 DIALOG_TITLE,
-                                 button.getBackground()
-                              )
-                        )
+                  {
+                  
+                     final Color chosenColor =
+                        JColorChooser
+                           .showDialog
+                           (
+                              button,
+                              DIALOG_TITLE,
+                              button.getBackground()
+                           );
+                  
+                     this.currentColor = chosenColor;
+                     button.setBackground(chosenColor);
+                  
+                  }
                );
+         
          
          }
       
