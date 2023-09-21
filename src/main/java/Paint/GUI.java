@@ -1,6 +1,7 @@
 
 package Paint;
 
+import javax.imageio.*;
 import javax.swing.*;
 import javax.swing.border.*;
 import java.awt.BorderLayout;
@@ -10,6 +11,7 @@ import java.awt.GridLayout;
 import java.awt.Graphics;
 import java.awt.event.*;
 import java.awt.image.*;
+import java.io.File;
 import java.util.*;
 import java.util.function.*;
 import java.util.stream.*;
@@ -17,14 +19,39 @@ import java.util.stream.*;
 public class GUI
 {
 
+   private enum KeyboardColorHotKey
+   {
+   
+      U(Color.RED),
+      I(Color.ORANGE),
+      O(Color.YELLOW),
+      H(Color.GREEN),
+      J(Color.BLUE),
+      K(Color.MAGENTA),
+      B(Color.PINK),
+      N(Color.WHITE),
+      M(Color.BLACK),
+      ;
+   
+      public final Color color;
+   
+      KeyboardColorHotKey(final Color color)
+      {
+      
+         this.color = color;
+      
+      }
+   
+   }
+
    private static final int MIN_PEN_SIZE = 1;
    private static final int MAX_PEN_SIZE = 1;
 
    private static final Dimension CELL_DIMENSIONS  = new Dimension(10, 10);
-   private static final KeyStroke UP               = KeyStroke.getKeyStroke(KeyEvent.VK_UP,     0, true);
-   private static final KeyStroke DOWN             = KeyStroke.getKeyStroke(KeyEvent.VK_DOWN,   0, true);
-   private static final KeyStroke LEFT             = KeyStroke.getKeyStroke(KeyEvent.VK_LEFT,   0, true);
-   private static final KeyStroke RIGHT            = KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT,  0, true);
+   private static final KeyStroke UP               = KeyStroke.getKeyStroke(KeyEvent.VK_UP,     0, false);
+   private static final KeyStroke DOWN             = KeyStroke.getKeyStroke(KeyEvent.VK_DOWN,   0, false);
+   private static final KeyStroke LEFT             = KeyStroke.getKeyStroke(KeyEvent.VK_LEFT,   0, false);
+   private static final KeyStroke RIGHT            = KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT,  0, false);
    private static final KeyStroke SPACE_PRESS      = KeyStroke.getKeyStroke(KeyEvent.VK_SPACE,  0, false);
    private static final KeyStroke SPACE_RELEASE    = KeyStroke.getKeyStroke(KeyEvent.VK_SPACE,  0, true);
    private static final Border ORIGINAL_BORDER     = new JButton().getBorder();
@@ -41,13 +68,13 @@ public class GUI
             )
             ;
 
-   private final List<JComponent> cells = new ArrayList<>();
+   private final List<JButton> cells = new ArrayList<>();
 
-   private int numPixelRows = 5;
-   private int numPixelColumns = 5;
    private Color currentColor = Color.BLACK;
-   private int penSize = 1;
    private boolean coloring = false;
+   private int numPixelRows = 26;
+   private int numPixelColumns = 24;
+   private int penSize = 1;
 
    public GUI()
    {
@@ -70,8 +97,9 @@ public class GUI
    
       final JPanel mainPanel = new JPanel(new BorderLayout());
    
-      mainPanel.add(this.createTopPanel(),      BorderLayout.NORTH);
-      mainPanel.add(this.createCenterPanel(),   BorderLayout.CENTER);
+      mainPanel.add(this.createTopPanel(),         BorderLayout.NORTH);
+      mainPanel.add(this.createCenterPanel(),      BorderLayout.CENTER);
+      mainPanel.add(this.createSaveButtonPanel(),  BorderLayout.SOUTH);
    
       return mainPanel;
    
@@ -176,41 +204,51 @@ public class GUI
                   )
                   ;
             
-               final Function<KeyStroke, Action> actionFunction =
-                  keyStroke ->
-                  new AbstractAction()
-                  {
-                  
-                     public void actionPerformed(final ActionEvent event)
+               final BiFunction<JButton, KeyStroke, Action> actionFunction =
+                  (yeughh, keyStroke) ->
+                     new AbstractAction()
                      {
                      
-                        Objects.requireNonNull(keyStroke);
-                     
-                        if (keyStroke.getModifiers() == 0)
+                        public void actionPerformed(final ActionEvent event)
                         {
                         
-                           gui
-                              .cells
-                              .get
-                              (
-                                 switch (keyStroke.getKeyCode())
-                                 {
-                                 
-                                    case KeyEvent.VK_UP     -> currentIndex >= gui.numPixelColumns                            ? currentIndex - gui.numPixelColumns : currentIndex;
-                                    case KeyEvent.VK_DOWN   -> currentIndex < totalSize - gui.numPixelColumns                 ? currentIndex + gui.numPixelColumns : currentIndex;
-                                    case KeyEvent.VK_LEFT   -> currentIndex % gui.numPixelColumns != 0                        ? currentIndex - 1 : currentIndex;
-                                    case KeyEvent.VK_RIGHT  -> currentIndex % gui.numPixelColumns != gui.numPixelColumns - 1  ? currentIndex + 1 : currentIndex;
-                                    default                 -> currentIndex;
-                                 
-                                 }
-                              )
-                              .requestFocus();
+                           Objects.requireNonNull(keyStroke);
+                        
+                           if (keyStroke.getModifiers() == 0)
+                           {
+                           
+                              final JComponent nextCell =
+                                 gui
+                                    .cells
+                                    .get
+                                    (
+                                       switch (keyStroke.getKeyCode())
+                                       {
+                                       
+                                          case KeyEvent.VK_UP     -> currentIndex >= gui.numPixelColumns                            ? currentIndex - gui.numPixelColumns : currentIndex;
+                                          case KeyEvent.VK_DOWN   -> currentIndex < totalSize - gui.numPixelColumns                 ? currentIndex + gui.numPixelColumns : currentIndex;
+                                          case KeyEvent.VK_LEFT   -> currentIndex % gui.numPixelColumns != 0                        ? currentIndex - 1 : currentIndex;
+                                          case KeyEvent.VK_RIGHT  -> currentIndex % gui.numPixelColumns != gui.numPixelColumns - 1  ? currentIndex + 1 : currentIndex;
+                                          default                 -> currentIndex;
+                                       
+                                       }
+                                    )
+                                    ;
+                           
+                              nextCell.requestFocus();
+                           
+                              if (gui.coloring && nextCell instanceof JButton idka)
+                              {
+                              
+                                 idka.doClick();
+                              
+                              }
+                           
+                           }
                         
                         }
                      
                      }
-                  
-                  }
                   ;
             
                this.setKeyBinding(cell, UP,     actionFunction);
@@ -223,8 +261,8 @@ public class GUI
             ADD_KEYBOARD_COLORING:
             {
             
-               final Function<KeyStroke, Action> actionFunction =
-                  keyStroke ->
+               final BiFunction<JButton, KeyStroke, Action> actionFunction =
+                  (someButton, keyStroke) ->
                      new AbstractAction()
                      {
                      
@@ -236,6 +274,7 @@ public class GUI
                            
                               System.out.println("PRESSED SPACE");
                               gui.coloring = true;
+                              someButton.doClick();
                            
                            }
                            
@@ -315,10 +354,6 @@ public class GUI
       final int NUM_ROWS = 3;
       final int NUM_COLUMNS = 3;
       final String DIALOG_TITLE = "Choose a color";
-      final List<Character> KEY_LIST = List.of('U', 'I', 'O', 'H', 'J', 'K', 'B', 'N', 'M');
-   
-      final List<Color> COLOR_LIST =
-         List.of(Color.RED, Color.ORANGE, Color.YELLOW, Color.GREEN, Color.BLUE, Color.MAGENTA, Color.PINK, Color.WHITE, Color.BLACK);
    
       final JPanel panel = new JPanel(new GridLayout(NUM_ROWS, NUM_COLUMNS));
    
@@ -328,7 +363,7 @@ public class GUI
       {
       
          final JButton button =
-            new JButton("" + KEY_LIST.get(index))
+            new JButton("" + KeyboardColorHotKey.values()[index])
             {
             
                private static final int JUMP = 10;
@@ -379,11 +414,12 @@ public class GUI
                
                }
             
-            };
+            }
+            ;
       
          button.setFont(button.getFont().deriveFont(20.0f));
          button.setOpaque(false);
-         button.setBackground(COLOR_LIST.get(index));
+         button.setBackground(KeyboardColorHotKey.values()[index].color);
       
          ON_CLICK:
          {
@@ -420,15 +456,106 @@ public class GUI
    
    }
 
-   private void setKeyBinding(final JComponent component, final KeyStroke keyStroke, final Function<KeyStroke, Action> actionFunction)
+   private JPanel createSaveButtonPanel()
    {
    
-      Objects.requireNonNull(component);
+      final JPanel panel = new JPanel();
+   
+      panel.setLayout(new BoxLayout(panel, BoxLayout.LINE_AXIS));
+   
+      final JButton save = new JButton();
+   
+      save.setText("SAVE");
+   
+      enum ImageType
+      {
+      
+         PNG,
+         GIF,
+         ;
+      
+      }
+   
+      final JComboBox<ImageType> imageTypeDropDownMenu = new JComboBox<>(ImageType.values());
+   
+      save
+         .addActionListener
+         (
+            event ->
+            {
+            
+               final List<Color> pixels =
+                  this
+                     .cells
+                     .stream()
+                     .map(JButton::getBackground)
+                     .toList()
+                     ;
+            
+               final BufferedImage finalImage =
+                  new
+                     BufferedImage
+                     (
+                        this.numPixelColumns,
+                        this.numPixelRows,
+                        BufferedImage.TYPE_INT_ARGB
+                     )
+                     ;
+            
+               for (int row = 0; row < this.numPixelRows; row++)
+               {
+               
+                  for (int column = 0; column < this.numPixelColumns; column++)
+                  {
+                  
+                     final int index = (row * this.numPixelColumns) + column;
+                  
+                     final Color pixel = pixels.get(index);
+                     System.out.println(pixel);
+                     System.out.println(pixel.getRGB());
+                     finalImage.setRGB(column, row, pixel.getRGB());
+                  
+                  }
+               
+               }
+            
+               try
+               {
+               
+                  final String imageType = 
+                     ImageType.values()[imageTypeDropDownMenu.getSelectedIndex()].name().toLowerCase();
+               
+                  ImageIO.write(finalImage, imageType, new File(java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss_SSS")) + "." + imageType));
+               
+               }
+               
+               catch (final Exception e)
+               {
+               
+                  throw new RuntimeException(e);
+               
+               }
+            
+            }
+         )
+         ;
+   
+      panel.add(save);
+      panel.add(imageTypeDropDownMenu);
+   
+      return panel;
+   
+   }
+
+   private void setKeyBinding(final JButton button, final KeyStroke keyStroke, final BiFunction<JButton, KeyStroke, Action> actionFunction)
+   {
+   
+      Objects.requireNonNull(button);
       Objects.requireNonNull(keyStroke);
       Objects.requireNonNull(actionFunction);
    
-      component.getInputMap().put(keyStroke, keyStroke.toString());
-      component.getActionMap().put(keyStroke.toString(), actionFunction.apply(keyStroke));
+      button.getInputMap().put(keyStroke, keyStroke.toString());
+      button.getActionMap().put(keyStroke.toString(), actionFunction.apply(button, keyStroke));
    
    }
 
