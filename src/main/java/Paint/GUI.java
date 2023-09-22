@@ -12,6 +12,8 @@ import java.awt.Graphics;
 import java.awt.event.*;
 import java.awt.image.*;
 import java.io.File;
+import java.time.format.DateTimeFormatter;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.function.*;
 import java.util.stream.*;
@@ -45,7 +47,7 @@ public class GUI
    }
 
    private static final int MIN_PEN_SIZE = 1;
-   private static final int MAX_PEN_SIZE = 1;
+   private static final int MAX_PEN_SIZE = 10;
 
    private static final Dimension CELL_DIMENSIONS  = new Dimension(10, 10);
    private static final KeyStroke UP               = KeyStroke.getKeyStroke(KeyEvent.VK_UP,     0, false);
@@ -55,6 +57,24 @@ public class GUI
    private static final KeyStroke SPACE_PRESS      = KeyStroke.getKeyStroke(KeyEvent.VK_SPACE,  0, false);
    private static final KeyStroke SPACE_RELEASE    = KeyStroke.getKeyStroke(KeyEvent.VK_SPACE,  0, true);
    private static final Border ORIGINAL_BORDER     = new JButton().getBorder();
+   private static final Border SELECTED_BORDER     =
+      BorderFactory
+         .createCompoundBorder
+         (
+            BorderFactory
+               .createLineBorder
+               (
+                  Color.BLACK,
+                  2
+               ),
+            BorderFactory
+               .createLineBorder
+               (
+                  Color.WHITE,
+                  2
+               )
+         )
+         ;
 
    private static final Function<String, Border> TITLED_BORDER =
       title ->
@@ -68,6 +88,7 @@ public class GUI
             )
             ;
 
+   private final JFrame frame;
    private final List<JButton> cells = new ArrayList<>();
 
    private Color currentColor = Color.BLACK;
@@ -76,19 +97,20 @@ public class GUI
    private int numPixelColumns = 24;
    private int penSize = 1;
 
+   @SuppressWarnings("this-escape")
    public GUI()
    {
    
-      final JFrame frame = new JFrame();
+      this.frame = new JFrame();
    
-      frame.setTitle("Paint");
-      frame.setLocationByPlatform(true);
-      frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+      this.frame.setTitle("Paint");
+      this.frame.setLocationByPlatform(true);
+      this.frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
    
-      frame.add(this.createMainPanel());
+      this.frame.add(this.createMainPanel());
    
-      frame.pack();
-      frame.setVisible(true);
+      this.frame.pack();
+      this.frame.setVisible(true);
    
    }
 
@@ -99,7 +121,7 @@ public class GUI
    
       mainPanel.add(this.createTopPanel(),         BorderLayout.NORTH);
       mainPanel.add(this.createCenterPanel(),      BorderLayout.CENTER);
-      mainPanel.add(this.createSaveButtonPanel(),  BorderLayout.SOUTH);
+      mainPanel.add(this.createBottomPanel(),      BorderLayout.SOUTH);
    
       return mainPanel;
    
@@ -146,7 +168,33 @@ public class GUI
             cell.setBackground(Color.WHITE);
             cell.setBorder(ORIGINAL_BORDER);
             cell.setRolloverEnabled(false);
-            cell.addActionListener(event -> cell.setBackground(this.currentColor));
+         
+            final int rowCopy = row;
+            final int columnCopy = column;
+         
+            cell
+               .addActionListener
+               (
+                  event ->
+                  {
+                  
+                     for (int hRow = rowCopy; hRow < rowCopy + gui.penSize && hRow < gui.numPixelRows; hRow++)
+                     {
+                     
+                        for (int hColumn = columnCopy; hColumn < columnCopy + gui.penSize && hColumn < gui.numPixelColumns; hColumn++)
+                        {
+                        
+                           final JButton currentButton = cells.get((hRow * gui.numPixelColumns) + hColumn);
+                        
+                           currentButton.setBackground(this.currentColor);
+                        
+                        }
+                     
+                     }
+                  
+                  }
+               )
+               ;
          
             final int currentIndex = (row * this.numPixelColumns) + column;
          
@@ -156,38 +204,30 @@ public class GUI
                cell
                   .addFocusListener
                   (
-                     new
-                        FocusListener()
+                     new FocusListener()
                      {
                      
                         public void focusGained(final FocusEvent event)
                         {
                         
-                           cell
-                              .setBorder
-                              (
-                                 BorderFactory
-                                    .createCompoundBorder
-                                    (
-                                       BorderFactory
-                                          .createLineBorder
-                                          (
-                                             Color.BLACK,
-                                             1
-                                          ),
-                                       BorderFactory
-                                          .createLineBorder
-                                          (
-                                             Color.WHITE,
-                                             1
-                                          )
-                                    )
-                              );
-                        
-                           if (gui.coloring)
+                           for (int hRow = rowCopy; hRow < rowCopy + gui.penSize && hRow < gui.numPixelRows; hRow++)
                            {
                            
-                              cell.doClick();
+                              for (int hColumn = columnCopy; hColumn < columnCopy + gui.penSize && hColumn < gui.numPixelColumns; hColumn++)
+                              {
+                              
+                                 final JButton currentButton = cells.get((hRow * gui.numPixelColumns) + hColumn);
+                              
+                                 currentButton.setBorder(SELECTED_BORDER);
+                              
+                                 if (gui.coloring)
+                                 {
+                                 
+                                    currentButton.setBackground(gui.currentColor);
+                                 
+                                 }
+                              
+                              }
                            
                            }
                         
@@ -196,7 +236,19 @@ public class GUI
                         public void focusLost(final FocusEvent event)
                         {
                         
-                           cell.setBorder(ORIGINAL_BORDER);
+                           for (int hRow = rowCopy; hRow < rowCopy + gui.penSize && hRow < gui.numPixelRows; hRow++)
+                           {
+                           
+                              for (int hColumn = columnCopy; hColumn < columnCopy + gui.penSize && hColumn < gui.numPixelColumns; hColumn++)
+                              {
+                              
+                                 final JButton currentButton = cells.get((hRow * gui.numPixelColumns) + hColumn);
+                              
+                                 currentButton.setBorder(ORIGINAL_BORDER);
+                              
+                              }
+                           
+                           }
                         
                         }
                      
@@ -217,30 +269,25 @@ public class GUI
                            if (keyStroke.getModifiers() == 0)
                            {
                            
-                              final JComponent nextCell =
-                                 gui
-                                    .cells
-                                    .get
-                                    (
-                                       switch (keyStroke.getKeyCode())
-                                       {
-                                       
-                                          case KeyEvent.VK_UP     -> currentIndex >= gui.numPixelColumns                            ? currentIndex - gui.numPixelColumns : currentIndex;
-                                          case KeyEvent.VK_DOWN   -> currentIndex < totalSize - gui.numPixelColumns                 ? currentIndex + gui.numPixelColumns : currentIndex;
-                                          case KeyEvent.VK_LEFT   -> currentIndex % gui.numPixelColumns != 0                        ? currentIndex - 1 : currentIndex;
-                                          case KeyEvent.VK_RIGHT  -> currentIndex % gui.numPixelColumns != gui.numPixelColumns - 1  ? currentIndex + 1 : currentIndex;
-                                          default                 -> currentIndex;
-                                       
-                                       }
-                                    )
-                                    ;
-                           
+                              final JComponent nextCell = gui.fetchNextCell(keyStroke, currentIndex, totalSize);
                               nextCell.requestFocus();
                            
-                              if (gui.coloring && nextCell instanceof JButton idka)
+                              for (int hRow = rowCopy; hRow < rowCopy + gui.penSize && hRow < gui.numPixelRows; hRow++)
                               {
                               
-                                 idka.doClick();
+                                 for (int hColumn = columnCopy; hColumn < columnCopy + gui.penSize && hColumn < gui.numPixelColumns; hColumn++)
+                                 {
+                                 
+                                    final JButton currentButton = cells.get((hRow * gui.numPixelColumns) + hColumn);
+                                 
+                                    if (gui.coloring)
+                                    {
+                                    
+                                       currentButton.setBackground(gui.currentColor);
+                                    
+                                    }
+                                 
+                                 }
                               
                               }
                            
@@ -456,7 +503,7 @@ public class GUI
    
    }
 
-   private JPanel createSaveButtonPanel()
+   private JPanel createBottomPanel()
    {
    
       final JPanel panel = new JPanel();
@@ -484,6 +531,10 @@ public class GUI
             event ->
             {
             
+               final int selectedIndex = imageTypeDropDownMenu.getSelectedIndex();
+            
+               final ImageType imageType = ImageType.values()[selectedIndex];
+            
                final List<Color> pixels =
                   this
                      .cells
@@ -491,6 +542,123 @@ public class GUI
                      .map(JButton::getBackground)
                      .toList()
                      ;
+            
+               PERFORM_VALIDATIONS:
+               {
+               
+                  final Predicate<Color> isOpaqueOrTransparent =
+                     givenColor ->
+                        givenColor.getAlpha() == 0
+                        ||
+                        givenColor.getAlpha() == 255
+                        ;
+               
+                  final boolean canSaveCorrectly =
+                     switch (imageType)
+                     {
+                     
+                        case  PNG   -> true;
+                        case  GIF   ->
+                           pixels
+                              .stream()
+                              .allMatch(isOpaqueOrTransparent)
+                              ;
+                     
+                     }
+                     ;
+               
+                  if (!canSaveCorrectly)
+                  {
+                  
+                     record Pixel(int row, int column, Color color)
+                     {
+                     
+                        public Pixel
+                        {
+                        
+                           Objects.requireNonNull(color);
+                        
+                        }
+                     
+                        public static Pixel of(final int index, final Color color, final GUI gui)
+                        {
+                        
+                           Objects.requireNonNull(color);
+                           Objects.requireNonNull(gui);
+                        
+                           final int maxRows    = gui.numPixelRows;
+                           final int maxColumns = gui.numPixelColumns;
+                        
+                           final int row     = index / maxColumns;
+                           final int column  = index % maxColumns;
+                        
+                           return
+                              new
+                                 Pixel
+                                 (
+                                    row,
+                                    column,
+                                    color
+                                 );
+                        
+                        }
+                     
+                     }
+                  
+                     final JPanel listOfBadPixels = new JPanel();
+                     listOfBadPixels.setLayout(new BoxLayout(listOfBadPixels, BoxLayout.PAGE_AXIS));
+                     listOfBadPixels
+                        .add
+                        (
+                           new
+                              JLabel
+                              (
+                                 """
+                                 <html>
+                                 Cannot have translucent pixels in a GIF!<br>
+                                 Translucent means that the pixel has an alpha value where 0 &lt; alpha &lt; 255!<br>
+                                 Here are the list of translucent pixels.<br>
+                                 Please remember, the top-left most pixel is row = 0 and column = 0!
+                                 </html>
+                                 """
+                              )
+                        )
+                        ;
+                  
+                     listOfBadPixels
+                        .add
+                        (
+                           new
+                              JScrollPane
+                              (
+                                 new
+                                    JList<String>
+                                    (
+                                       IntStream
+                                          .range(0, pixels.size())
+                                          .mapToObj(eachInt -> Pixel.of(eachInt, pixels.get(eachInt), this))
+                                          .filter(eachPixel -> !isOpaqueOrTransparent.test(eachPixel.color()))
+                                          .map(eachPixel -> eachPixel + " -- alpha = " + eachPixel.color().getAlpha())
+                                          .toArray(String[]::new)
+                                    )
+                              )
+                        )
+                        ;
+                  
+                     JOptionPane
+                        .showMessageDialog
+                        (
+                           this.frame,
+                           listOfBadPixels,
+                           "Cannot have translucent pixels in a GIF!",
+                           JOptionPane.ERROR_MESSAGE
+                        );
+                  
+                     return;
+                  
+                  }
+               
+               }
             
                final BufferedImage finalImage =
                   new
@@ -522,10 +690,30 @@ public class GUI
                try
                {
                
-                  final String imageType = 
-                     ImageType.values()[imageTypeDropDownMenu.getSelectedIndex()].name().toLowerCase();
+                  final String imageTypeString = imageType.name().toLowerCase();
                
-                  ImageIO.write(finalImage, imageType, new File(java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss_SSS")) + "." + imageType));
+                  ImageIO
+                     .write
+                     (
+                        finalImage,
+                        imageTypeString,
+                        new
+                           File
+                           (
+                              LocalDateTime
+                                 .now()
+                                 .format
+                                 (
+                                    DateTimeFormatter
+                                       .ofPattern("yyyyMMdd_HHmmss_SSS")
+                                 )
+                                 +
+                                 "."
+                                 +
+                                 imageType
+                           )
+                     )
+                     ;
                
                }
                
@@ -537,6 +725,7 @@ public class GUI
                }
             
             }
+         
          )
          ;
    
@@ -544,6 +733,29 @@ public class GUI
       panel.add(imageTypeDropDownMenu);
    
       return panel;
+   
+   }
+
+   private JComponent fetchNextCell(final KeyStroke keyStroke, final int currentIndex, final int totalSize)
+   {
+   
+      return
+         this
+            .cells
+            .get
+            (
+               switch (keyStroke.getKeyCode())
+               {
+               
+                  case KeyEvent.VK_UP     -> currentIndex   >= this.numPixelColumns                               ? currentIndex - this.numPixelColumns : currentIndex;
+                  case KeyEvent.VK_DOWN   -> currentIndex   <  totalSize - this.numPixelColumns                   ? currentIndex + this.numPixelColumns : currentIndex;
+                  case KeyEvent.VK_LEFT   -> currentIndex   %  this.numPixelColumns != 0                          ? currentIndex - 1 : currentIndex;
+                  case KeyEvent.VK_RIGHT  -> currentIndex   %  this.numPixelColumns != this.numPixelColumns - 1   ? currentIndex + 1 : currentIndex;
+                  default                 -> currentIndex;
+               
+               }
+            )
+            ;
    
    }
 
