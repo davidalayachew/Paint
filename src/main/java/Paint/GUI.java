@@ -15,6 +15,7 @@ import java.io.File;
 import java.time.format.DateTimeFormatter;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.*;
 import java.util.function.*;
 import java.util.stream.*;
 
@@ -46,8 +47,10 @@ public class GUI
    
    }
 
-   private static final int MIN_PEN_SIZE = 1;
-   private static final int MAX_PEN_SIZE = 10;
+   private static final ExecutorService THREADER =
+      Executors
+         .newWorkStealingPool()
+         ;
 
    private static final Dimension CELL_DIMENSIONS  = new Dimension(10, 10);
    private static final KeyStroke UP               = KeyStroke.getKeyStroke(KeyEvent.VK_UP,     0, false);
@@ -87,6 +90,9 @@ public class GUI
                TitledBorder.TOP
             )
             ;
+
+   private static final int MIN_PEN_SIZE = 1;
+   private static final int MAX_PEN_SIZE = 10;
 
    private final JFrame frame;
    private final List<JButton> cells = new ArrayList<>();
@@ -172,31 +178,90 @@ public class GUI
             final int rowCopy = row;
             final int columnCopy = column;
          
+            final class CellConsumer extends SwingWorker<JButton, Object>
+            {
+            
+               public final int indexValue;
+               private final Consumer<JButton> idca;
+            
+               public CellConsumer(final int indexValue, final Consumer<JButton> idca)
+               {
+               
+                  this.indexValue = indexValue;
+                  this.idca = idca;
+               
+               }
+            
+               @Override
+               public JButton doInBackground()
+               {
+               
+                  return cells.get(indexValue);
+               
+               }
+            
+               @Override
+               protected void done()
+               {
+               
+                  try
+                  {
+                  
+                     this.idca.accept(this.get());
+                  
+                  }
+                  
+                  catch (final Exception e)
+                  {
+                  
+                     throw new RuntimeException(e);
+                  
+                  }
+               
+               }
+            
+            }
+         
+            final Consumer<Consumer<JButton>> gridAction =
+               buttonConsumer ->
+                  IntStream
+                     .iterate
+                     (
+                        rowCopy,
+                        hRow -> hRow < rowCopy + gui.penSize && hRow < gui.numPixelRows,
+                        hRow -> hRow + 1
+                     )
+                     .parallel()
+                     .flatMap
+                     (
+                        hRow ->
+                           IntStream
+                              .iterate
+                              (
+                                 columnCopy,
+                                 hColumn -> hColumn < columnCopy + gui.penSize && hColumn < gui.numPixelColumns,
+                                 hColumn -> hColumn + 1
+                              )
+                              .parallel()
+                              .map(hColumn -> (hRow * gui.numPixelColumns) + hColumn)
+                     )
+                     .parallel()
+                     .mapToObj(someIndex -> new CellConsumer(someIndex, buttonConsumer))
+                     .map(THREADER::submit)
+                     .forEach(GUI::join)
+                     ;
+         
             cell
                .addActionListener
                (
                   event ->
                   {
                   
-                     for (int hRow = rowCopy; hRow < rowCopy + gui.penSize && hRow < gui.numPixelRows; hRow++)
-                     {
-                     
-                        for (int hColumn = columnCopy; hColumn < columnCopy + gui.penSize && hColumn < gui.numPixelColumns; hColumn++)
-                        {
-                        
-                           final JButton currentButton = cells.get((hRow * gui.numPixelColumns) + hColumn);
-                        
-                           currentButton.setBackground(this.currentColor);
-                        
-                        }
-                     
-                     }
+                     gridAction.accept(eachButton -> eachButton.setBackground(gui.currentColor));
                   
                   }
                )
                ;
-         
-            final int currentIndex = (row * this.numPixelColumns) + column;
          
             ADD_KEYBOARD_MOVEMENT:
             {
@@ -210,51 +275,38 @@ public class GUI
                         public void focusGained(final FocusEvent event)
                         {
                         
-                           for (int hRow = rowCopy; hRow < rowCopy + gui.penSize && hRow < gui.numPixelRows; hRow++)
-                           {
-                           
-                              for (int hColumn = columnCopy; hColumn < columnCopy + gui.penSize && hColumn < gui.numPixelColumns; hColumn++)
-                              {
-                              
-                                 final JButton currentButton = cells.get((hRow * gui.numPixelColumns) + hColumn);
-                              
-                                 currentButton.setBorder(SELECTED_BORDER);
-                              
-                                 if (gui.coloring)
+                           gridAction
+                              .accept
+                              (
+                                 eachButton ->
                                  {
                                  
-                                    currentButton.setBackground(gui.currentColor);
+                                    eachButton.setBorder(SELECTED_BORDER);
+                                 
+                                    if (gui.coloring)
+                                    {
+                                    
+                                       eachButton.setBackground(gui.currentColor);
+                                    
+                                    }
                                  
                                  }
-                              
-                              }
-                           
-                           }
+                              );
                         
                         }
                      
                         public void focusLost(final FocusEvent event)
                         {
                         
-                           for (int hRow = rowCopy; hRow < rowCopy + gui.penSize && hRow < gui.numPixelRows; hRow++)
-                           {
-                           
-                              for (int hColumn = columnCopy; hColumn < columnCopy + gui.penSize && hColumn < gui.numPixelColumns; hColumn++)
-                              {
-                              
-                                 final JButton currentButton = cells.get((hRow * gui.numPixelColumns) + hColumn);
-                              
-                                 currentButton.setBorder(ORIGINAL_BORDER);
-                              
-                              }
-                           
-                           }
+                           gridAction.accept(eachButton -> eachButton.setBorder(ORIGINAL_BORDER));
                         
                         }
                      
                      }
                   )
                   ;
+            
+               final int currentIndex = (row * this.numPixelColumns) + column;
             
                final BiFunction<JButton, KeyStroke, Action> actionFunction =
                   (yeughh, keyStroke) ->
@@ -269,27 +321,26 @@ public class GUI
                            if (keyStroke.getModifiers() == 0)
                            {
                            
-                              final JComponent nextCell = gui.fetchNextCell(keyStroke, currentIndex, totalSize);
+                              final JComponent nextCell =
+                                 gui.fetchNextCell(keyStroke, currentIndex, totalSize);
+                           
                               nextCell.requestFocus();
                            
-                              for (int hRow = rowCopy; hRow < rowCopy + gui.penSize && hRow < gui.numPixelRows; hRow++)
-                              {
-                              
-                                 for (int hColumn = columnCopy; hColumn < columnCopy + gui.penSize && hColumn < gui.numPixelColumns; hColumn++)
-                                 {
-                                 
-                                    final JButton currentButton = cells.get((hRow * gui.numPixelColumns) + hColumn);
-                                 
-                                    if (gui.coloring)
+                              gridAction
+                                 .accept
+                                 (
+                                    eachButton ->
                                     {
                                     
-                                       currentButton.setBackground(gui.currentColor);
+                                       if (gui.coloring)
+                                       {
+                                       
+                                          eachButton.setBackground(gui.currentColor);
+                                       
+                                       }
                                     
                                     }
-                                 
-                                 }
-                              
-                              }
+                                 );
                            
                            }
                         
@@ -756,6 +807,25 @@ public class GUI
                }
             )
             ;
+   
+   }
+
+   private static <T> void join(final Future<T> future)
+   {
+   
+      try
+      {
+      
+         System.out.println(future.get());
+      
+      }
+      
+      catch (final Exception e)
+      {
+      
+         throw new RuntimeException(e);
+      
+      }
    
    }
 
