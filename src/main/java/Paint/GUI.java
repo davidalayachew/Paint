@@ -9,6 +9,8 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.GridLayout;
 import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.Point;
 import java.awt.event.*;
 import java.awt.image.*;
 import java.io.File;
@@ -53,31 +55,12 @@ public class GUI
          ;
 
    private static final Dimension CELL_DIMENSIONS  = new Dimension(10, 10);
-   private static final KeyStroke UP               = KeyStroke.getKeyStroke(KeyEvent.VK_UP,     0, false);
-   private static final KeyStroke DOWN             = KeyStroke.getKeyStroke(KeyEvent.VK_DOWN,   0, false);
-   private static final KeyStroke LEFT             = KeyStroke.getKeyStroke(KeyEvent.VK_LEFT,   0, false);
-   private static final KeyStroke RIGHT            = KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT,  0, false);
-   private static final KeyStroke SPACE_PRESS      = KeyStroke.getKeyStroke(KeyEvent.VK_SPACE,  0, false);
-   private static final KeyStroke SPACE_RELEASE    = KeyStroke.getKeyStroke(KeyEvent.VK_SPACE,  0, true);
-   private static final Border ORIGINAL_BORDER     = new JButton().getBorder();
-   private static final Border SELECTED_BORDER     =
-      BorderFactory
-         .createCompoundBorder
-         (
-            BorderFactory
-               .createLineBorder
-               (
-                  Color.BLACK,
-                  2
-               ),
-            BorderFactory
-               .createLineBorder
-               (
-                  Color.WHITE,
-                  2
-               )
-         )
-         ;
+   private static final KeyStroke UP               = KeyStroke.getKeyStroke(KeyEvent.VK_UP,     0, false );
+   private static final KeyStroke DOWN             = KeyStroke.getKeyStroke(KeyEvent.VK_DOWN,   0, false );
+   private static final KeyStroke LEFT             = KeyStroke.getKeyStroke(KeyEvent.VK_LEFT,   0, false );
+   private static final KeyStroke RIGHT            = KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT,  0, false );
+   private static final KeyStroke SPACE_PRESS      = KeyStroke.getKeyStroke(KeyEvent.VK_SPACE,  0, false );
+   private static final KeyStroke SPACE_RELEASE    = KeyStroke.getKeyStroke(KeyEvent.VK_SPACE,  0, true  );
 
    private static final Function<String, Border> TITLED_BORDER =
       title ->
@@ -93,19 +76,38 @@ public class GUI
 
    private static final int MIN_PEN_SIZE = 1;
    private static final int MAX_PEN_SIZE = 10;
+   private static final int DEFAULT_IMAGE_PIXEL_ROWS = 26;
+   private static final int DEFAULT_IMAGE_PIXEL_COLUMNS = 24;
 
+   private final List<Color> imagePixels =
+      Arrays.asList(new Color[DEFAULT_IMAGE_PIXEL_ROWS * DEFAULT_IMAGE_PIXEL_COLUMNS]);
    private final JFrame frame;
-   private final List<JButton> cells = new ArrayList<>();
 
-   private Color currentColor = Color.BLACK;
+   private Color transparencyColor = Color.WHITE;
+   private Color cursorColor = Color.BLACK;
+   private Point mouseCurrentLocation = new Point(0, 0);
    private boolean coloring = false;
-   private int numPixelRows = 26;
-   private int numPixelColumns = 24;
+   private int numImagePixelRows = DEFAULT_IMAGE_PIXEL_ROWS;
+   private int numImagePixelColumns = DEFAULT_IMAGE_PIXEL_COLUMNS;
    private int penSize = 1;
+   private int screenToImagePixelRatio = 10;
 
-   @SuppressWarnings("this-escape")
    public GUI()
    {
+   
+      try
+      {
+      
+         UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName());
+      
+      }
+      
+      catch (Exception e)
+      {
+      
+         throw new RuntimeException(e);
+      
+      }
    
       this.frame = new JFrame();
    
@@ -141,6 +143,7 @@ public class GUI
    
       topPanel.add(this.createPenSizePanel());
       topPanel.add(this.createColorChooserPanel());
+      //topPanel.add(this.colorToShowWhenUsingTransparentOrTranslucentPixels());
    
       return topPanel;
    
@@ -149,156 +152,195 @@ public class GUI
    private JPanel createCenterPanel()
    {
    
-      final JPanel panel = new JPanel();
+      final GUI gui = this; //useful when trying to differentiate between different this'.
    
-      panel.setLayout(new BoxLayout(panel, BoxLayout.PAGE_AXIS));
+      final JPanel mainPanel;
    
-      final GUI gui = this;
-      final int totalSize = this.numPixelRows * this.numPixelColumns;
-   
-      for (int row = 0; row < this.numPixelRows; row++)
+      CREATE_MAIN_PANEL:
       {
       
-         final JPanel rowPanel = new JPanel();
+         mainPanel = new JPanel();
+         mainPanel.setLayout(new BorderLayout());
       
-         rowPanel.setLayout(new BoxLayout(rowPanel, BoxLayout.LINE_AXIS));
+      }
+   
+      final JPanel drawingPanel;
+   
+      final Runnable UPDATE_DRAWING_PANEL_BORDER_TEXT;
+      final Runnable UPDATE_DRAWING_PANEL_SIZE;
+      final Runnable REPAINT_DRAWING_PANEL;
+   
+      CREATE_DRAWING_PANEL:
+      {
       
-         for (int column = 0; column < this.numPixelColumns; column++)
+         SET_UP_DRAWING_PANEL:
          {
          
-            final JButton cell = new JButton();
+            drawingPanel = new JPanel();
          
-            cell.setPreferredSize(CELL_DIMENSIONS);
-            cell.setMaximumSize(CELL_DIMENSIONS);
-            cell.setMinimumSize(CELL_DIMENSIONS);
-            cell.setBackground(Color.WHITE);
-            cell.setBorder(ORIGINAL_BORDER);
-            cell.setRolloverEnabled(false);
+            drawingPanel.setLayout(new BoxLayout(drawingPanel, BoxLayout.PAGE_AXIS));
          
-            final int rowCopy = row;
-            final int columnCopy = column;
+            drawingPanel.add(Box.createRigidArea(new Dimension(123, 456)));
          
-            final class CellConsumer extends SwingWorker<JButton, Object>
+         }
+      
+         REPAINT_DRAWING_PANEL =
+            () ->
             {
             
-               public final int indexValue;
-               private final Consumer<JButton> idca;
-            
-               public CellConsumer(final int indexValue, final Consumer<JButton> idca)
-               {
-               
-                  this.indexValue = indexValue;
-                  this.idca = idca;
-               
-               }
-            
-               @Override
-               public JButton doInBackground()
-               {
-               
-                  return cells.get(indexValue);
-               
-               }
-            
-               @Override
-               protected void done()
-               {
-               
-                  try
-                  {
-                  
-                     this.idca.accept(this.get());
-                  
-                  }
-                  
-                  catch (final Exception e)
-                  {
-                  
-                     throw new RuntimeException(e);
-                  
-                  }
-               
-               }
+               drawingPanel.repaint();
+               drawingPanel.revalidate();
             
             }
-         
-            final Consumer<Consumer<JButton>> gridAction =
-               buttonConsumer ->
-                  IntStream
-                     .iterate
-                     (
-                        rowCopy,
-                        hRow -> hRow < rowCopy + gui.penSize && hRow < gui.numPixelRows,
-                        hRow -> hRow + 1
-                     )
-                     .parallel()
-                     .flatMap
-                     (
-                        hRow ->
-                           IntStream
-                              .iterate
+            ;
+      
+         UPDATE_DRAWING_PANEL_BORDER_TEXT =
+            () ->
+               drawingPanel
+                  .setBorder
+                  (
+                     BorderFactory
+                        .createCompoundBorder
+                        (
+                           TITLED_BORDER
+                              .apply
                               (
-                                 columnCopy,
-                                 hColumn -> hColumn < columnCopy + gui.penSize && hColumn < gui.numPixelColumns,
-                                 hColumn -> hColumn + 1
-                              )
-                              .parallel()
-                              .map(hColumn -> (hRow * gui.numPixelColumns) + hColumn)
-                     )
-                     .parallel()
-                     .mapToObj(someIndex -> new CellConsumer(someIndex, buttonConsumer))
-                     .map(THREADER::submit)
-                     .forEach(GUI::join)
-                     ;
-         
-            cell
-               .addActionListener
-               (
-                  event ->
-                  {
-                  
-                     gridAction.accept(eachButton -> eachButton.setBackground(gui.currentColor));
-                  
-                  }
-               )
-               ;
-         
-            ADD_KEYBOARD_MOVEMENT:
+                                 "Drawing Area -- "
+                                 + this.numImagePixelRows
+                                 + " rows and "
+                                 + this.numImagePixelColumns
+                                 + " columns"
+                              ),
+                           BorderFactory.createLineBorder(Color.BLACK, 1)
+                        )
+                  )
+                  ;
+      
+         UPDATE_DRAWING_PANEL_BORDER_TEXT.run();
+      
+         UPDATE_DRAWING_PANEL_SIZE =
+            () ->
             {
             
-               cell
-                  .addFocusListener
-                  (
-                     new FocusListener()
+               drawingPanel.remove(0);
+            
+               final Dimension drawingArea = gui.deriveDrawingAreaDimensions();
+            
+               final Box.Filler box =
+                  new Box.Filler(drawingArea, drawingArea, drawingArea)
+                  {
+                  
+                     @Override
+                     protected void paintComponent(final Graphics dontUse)
                      {
                      
-                        public void focusGained(final FocusEvent event)
+                        if (!(dontUse instanceof Graphics2D g))
                         {
                         
-                           gridAction
-                              .accept
-                              (
-                                 eachButton ->
-                                 {
-                                 
-                                    eachButton.setBorder(SELECTED_BORDER);
-                                 
-                                    if (gui.coloring)
-                                    {
-                                    
-                                       eachButton.setBackground(gui.currentColor);
-                                    
-                                    }
-                                 
-                                 }
-                              );
+                           throw new RuntimeException("Unknown graphics type = " + dontUse);
                         
                         }
                      
-                        public void focusLost(final FocusEvent event)
+                        DRAW_DRAWN_PIXELS:
                         {
                         
-                           gridAction.accept(eachButton -> eachButton.setBorder(ORIGINAL_BORDER));
+                           IntStream
+                              .range(0, gui.numImagePixelRows * gui.numImagePixelColumns)
+                              .forEach
+                              (
+                                 eachIndex ->
+                                 {
+                                 
+                                    final Color currentPixel = gui.imagePixels.get(eachIndex);
+                                 
+                                    final int x = eachIndex % gui.numImagePixelColumns;
+                                    final int y = eachIndex / gui.numImagePixelColumns;
+                                 
+                                    g.setColor(currentPixel == null ? gui.transparencyColor : currentPixel);
+                                    g
+                                       .fillRect
+                                       (
+                                          x * gui.screenToImagePixelRatio,
+                                          y * gui.screenToImagePixelRatio,
+                                          gui.screenToImagePixelRatio,
+                                          gui.screenToImagePixelRatio
+                                       )
+                                       ;
+                                 
+                                 }
+                              )
+                              ;
+                        
+                        }
+                     
+                        DRAW_CURSOR_PIXELS:
+                        {
+                        
+                           final int screenPixelCursorSize = gui.screenToImagePixelRatio * gui.penSize;
+                        
+                           g.setColor(gui.cursorColor);
+                           g
+                              .fillRect
+                              (
+                                 gui.mouseCurrentLocation.x,
+                                 gui.mouseCurrentLocation.y,
+                                 screenPixelCursorSize,
+                                 screenPixelCursorSize
+                              )
+                              ;
+                        
+                        }
+                     
+                     }
+                  
+                  }
+                  ;
+            
+               box
+                  .addMouseListener
+                  (
+                     new MouseAdapter()
+                     {
+                     
+                        @Override
+                        public void mousePressed(final MouseEvent mouseEvent)
+                        {
+                        
+                           final Point maybeNewPoint = mouseEvent.getPoint();
+                        
+                           final int x = (maybeNewPoint.x - (maybeNewPoint.x % gui.screenToImagePixelRatio)) / gui.screenToImagePixelRatio;
+                           final int y = (maybeNewPoint.y - (maybeNewPoint.y % gui.screenToImagePixelRatio)) / gui.screenToImagePixelRatio;
+                        
+                           final int index = (y * gui.numImagePixelColumns) + x;
+                        
+                           final int startRow      = index / gui.numImagePixelColumns;
+                           final int startColumn   = index % gui.numImagePixelColumns;
+                        
+                           for
+                           (
+                              int row = startRow;
+                              row < gui.imagePixels.size() / gui.numImagePixelColumns
+                                 && row < startRow + gui.penSize;
+                              row++
+                           )
+                           {
+                           
+                              for
+                              (
+                                 int column = startColumn;
+                                 column < gui.imagePixels.size() / gui.numImagePixelRows
+                                    && column < startColumn + gui.penSize;
+                                 column++
+                              )
+                              {
+                              
+                                 gui.imagePixels.set((row * gui.numImagePixelColumns) + column, gui.cursorColor);
+                              
+                              }
+                           
+                           }
+                        
+                           REPAINT_DRAWING_PANEL.run();
                         
                         }
                      
@@ -306,105 +348,222 @@ public class GUI
                   )
                   ;
             
-               final int currentIndex = (row * this.numPixelColumns) + column;
-            
-               final BiFunction<JButton, KeyStroke, Action> actionFunction =
-                  (yeughh, keyStroke) ->
-                     new AbstractAction()
+               box
+                  .addMouseMotionListener
+                  (
+                     new MouseMotionListener()
                      {
                      
-                        public void actionPerformed(final ActionEvent event)
+                        @Override
+                        public void mouseDragged(final MouseEvent mouseEvent)
                         {
                         
-                           Objects.requireNonNull(keyStroke);
+                           final Point maybeNewPoint = mouseEvent.getPoint();
                         
-                           if (keyStroke.getModifiers() == 0)
+                           final int x = (maybeNewPoint.x - (maybeNewPoint.x % gui.screenToImagePixelRatio)) / gui.screenToImagePixelRatio;
+                           final int y = (maybeNewPoint.y - (maybeNewPoint.y % gui.screenToImagePixelRatio)) / gui.screenToImagePixelRatio;
+                        
+                           final int index = (y * gui.numImagePixelColumns) + x;
+                        
+                           final int startRow      = index / gui.numImagePixelColumns;
+                           final int startColumn   = index % gui.numImagePixelColumns;
+                        
+                           for
+                           (
+                              int row = startRow;
+                              row < gui.imagePixels.size() / gui.numImagePixelColumns
+                                 && row < startRow + gui.penSize;
+                              row++
+                           )
                            {
                            
-                              final JComponent nextCell =
-                                 gui.fetchNextCell(keyStroke, currentIndex, totalSize);
+                              for
+                              (
+                                 int column = startColumn;
+                                 column < gui.imagePixels.size() / gui.numImagePixelRows
+                                    && column < startColumn + gui.penSize;
+                                 column++
+                              )
+                              {
+                              
+                                 gui.imagePixels.set((row * gui.numImagePixelColumns) + column, gui.cursorColor);
+                              
+                              }
                            
-                              nextCell.requestFocus();
+                           }
+                        
+                           REPAINT_DRAWING_PANEL.run();
+                        
+                        }
+                     
+                        @Override
+                        public void mouseMoved(final MouseEvent mouseEvent)
+                        {
+                        
+                           final Point maybeNewPoint = mouseEvent.getPoint();
+                        
+                           final int x = maybeNewPoint.x - (maybeNewPoint.x % gui.screenToImagePixelRatio);
+                           final int y = maybeNewPoint.y - (maybeNewPoint.y % gui.screenToImagePixelRatio);
+                        
+                           maybeNewPoint.setLocation(x, y);
+                        
+                           if (!gui.mouseCurrentLocation.equals(maybeNewPoint))
+                           {
                            
-                              gridAction
-                                 .accept
-                                 (
-                                    eachButton ->
-                                    {
-                                    
-                                       if (gui.coloring)
-                                       {
-                                       
-                                          eachButton.setBackground(gui.currentColor);
-                                       
-                                       }
-                                    
-                                    }
-                                 );
+                              gui.mouseCurrentLocation = maybeNewPoint;
+                           
+                              REPAINT_DRAWING_PANEL.run();
                            
                            }
                         
                         }
                      
                      }
+                  )
                   ;
             
-               this.setKeyBinding(cell, UP,     actionFunction);
-               this.setKeyBinding(cell, DOWN,   actionFunction);
-               this.setKeyBinding(cell, LEFT,   actionFunction);
-               this.setKeyBinding(cell, RIGHT,  actionFunction);
+               drawingPanel.add(new JScrollPane(box));
+            
+               REPAINT_DRAWING_PANEL.run();
             
             }
-         
-            ADD_KEYBOARD_COLORING:
-            {
-            
-               final BiFunction<JButton, KeyStroke, Action> actionFunction =
-                  (someButton, keyStroke) ->
-                     new AbstractAction()
-                     {
-                     
-                        public void actionPerformed(final ActionEvent event)
-                        {
-                        
-                           if (!gui.coloring && keyStroke == SPACE_PRESS)
-                           {
-                           
-                              System.out.println("PRESSED SPACE");
-                              gui.coloring = true;
-                              someButton.doClick();
-                           
-                           }
-                           
-                           else if (keyStroke == SPACE_RELEASE)
-                           {
-                           
-                              System.out.println("RELEASED SPACE");
-                              gui.coloring = false;
-                           
-                           }
-                        
-                        }
-                     
-                     }
-                  ;
-            
-               this.setKeyBinding(cell, SPACE_PRESS, actionFunction);
-               this.setKeyBinding(cell, SPACE_RELEASE, actionFunction);
-            
-            }
-         
-            this.cells.add(cell);
-         
-            rowPanel.add(cell);
-         
-         }
+            ;
       
-         panel.add(rowPanel);
+         UPDATE_DRAWING_PANEL_SIZE.run();
       
       }
    
-      return panel;
+      final JPanel drawingSettingsPanel;
+   
+      CREATE_DRAWING_SETTINGS_PANEL:
+      {
+      
+         drawingSettingsPanel = new JPanel();
+         drawingSettingsPanel.setLayout(new BoxLayout(drawingSettingsPanel, BoxLayout.LINE_AXIS));
+      
+         final JComboBox<Integer> screenToImagePixelRatioDropDownMenu =
+            new JComboBox<>(IntStream.rangeClosed(10, 30).boxed().toArray(Integer[]::new));
+      
+         screenToImagePixelRatioDropDownMenu
+            .addActionListener
+            (
+               event ->
+               {
+               
+                  this.screenToImagePixelRatio =
+                     screenToImagePixelRatioDropDownMenu
+                        .getItemAt
+                        (
+                           screenToImagePixelRatioDropDownMenu.getSelectedIndex()
+                        )
+                        ;
+               
+                  UPDATE_DRAWING_PANEL_SIZE.run();
+               
+               }
+            );
+      
+         final JButton transparencyColorChooser;
+      
+         TRANSPARENCY_COLOR_CHOOSER:
+         {
+         
+            transparencyColorChooser = new JButton();
+         
+            transparencyColorChooser.setText("Transparency Color");
+         
+            transparencyColorChooser
+               .addActionListener
+               (
+                  event ->
+                  {
+                  
+                     final Color chosenColor =
+                        JColorChooser
+                           .showDialog
+                           (
+                              this.frame,
+                              "Choose the Drawing Area's Transparency color!",
+                              this.transparencyColor,
+                              false
+                           )
+                           ;
+                  
+                     if (chosenColor == null)
+                     {
+                     
+                        return;
+                     
+                     }
+                  
+                     this.transparencyColor = chosenColor;
+                  
+                     REPAINT_DRAWING_PANEL.run();
+                  
+                  }
+               )
+               ;
+         
+         }
+      
+         final JButton cursorColorChooser;
+      
+         CURSOR_COLOR_CHOOSER:
+         {
+         
+            cursorColorChooser = new JButton();
+         
+            cursorColorChooser.setText("Cursor Color");
+         
+            cursorColorChooser
+               .addActionListener
+               (
+                  event ->
+                  {
+                  
+                     final Color chosenColor =
+                        JColorChooser
+                           .showDialog
+                           (
+                              this.frame,
+                              "Choose the Drawing Area's Cursor color!",
+                              this.cursorColor,
+                              false
+                           )
+                           ;
+                  
+                     if (chosenColor == null)
+                     {
+                     
+                        return;
+                     
+                     }
+                  
+                     this.cursorColor = chosenColor;
+                  
+                     REPAINT_DRAWING_PANEL.run();
+                  
+                  }
+               )
+               ;
+         
+         }
+      
+         drawingSettingsPanel.add(Box.createHorizontalGlue());
+         drawingSettingsPanel.add(screenToImagePixelRatioDropDownMenu);
+         drawingSettingsPanel.add(new JLabel("SCREEN pixels = 1 IMAGE pixel"));
+         drawingSettingsPanel.add(Box.createHorizontalStrut(10));
+         drawingSettingsPanel.add(transparencyColorChooser);
+         drawingSettingsPanel.add(Box.createHorizontalStrut(10));
+         drawingSettingsPanel.add(cursorColorChooser);
+         drawingSettingsPanel.add(Box.createHorizontalGlue());
+      
+      }
+   
+      mainPanel.add(drawingSettingsPanel, BorderLayout.NORTH);
+      mainPanel.add(drawingPanel, BorderLayout.CENTER);
+   
+      return mainPanel;
    
    }
 
@@ -537,7 +696,7 @@ public class GUI
                               button.getBackground()
                            );
                   
-                     this.currentColor = chosenColor;
+                     this.cursorColor = chosenColor;
                      button.setBackground(chosenColor);
                   
                   }
@@ -581,202 +740,201 @@ public class GUI
          (
             event ->
             {
-            
-               final int selectedIndex = imageTypeDropDownMenu.getSelectedIndex();
-            
-               final ImageType imageType = ImageType.values()[selectedIndex];
-            
-               final List<Color> pixels =
-                  this
-                     .cells
-                     .stream()
-                     .map(JButton::getBackground)
-                     .toList()
-                     ;
-            
-               PERFORM_VALIDATIONS:
-               {
-               
-                  final Predicate<Color> isOpaqueOrTransparent =
-                     givenColor ->
-                        givenColor.getAlpha() == 0
-                        ||
-                        givenColor.getAlpha() == 255
-                        ;
-               
-                  final boolean canSaveCorrectly =
-                     switch (imageType)
-                     {
-                     
-                        case  PNG   -> true;
-                        case  GIF   ->
-                           pixels
-                              .stream()
-                              .allMatch(isOpaqueOrTransparent)
-                              ;
-                     
-                     }
-                     ;
-               
-                  if (!canSaveCorrectly)
-                  {
-                  
-                     record Pixel(int row, int column, Color color)
-                     {
-                     
-                        public Pixel
-                        {
-                        
-                           Objects.requireNonNull(color);
-                        
-                        }
-                     
-                        public static Pixel of(final int index, final Color color, final GUI gui)
-                        {
-                        
-                           Objects.requireNonNull(color);
-                           Objects.requireNonNull(gui);
-                        
-                           final int maxRows    = gui.numPixelRows;
-                           final int maxColumns = gui.numPixelColumns;
-                        
-                           final int row     = index / maxColumns;
-                           final int column  = index % maxColumns;
-                        
-                           return
-                              new
-                                 Pixel
-                                 (
-                                    row,
-                                    column,
-                                    color
-                                 );
-                        
-                        }
-                     
-                     }
-                  
-                     final JPanel listOfBadPixels = new JPanel();
-                     listOfBadPixels.setLayout(new BoxLayout(listOfBadPixels, BoxLayout.PAGE_AXIS));
-                     listOfBadPixels
-                        .add
-                        (
-                           new
-                              JLabel
-                              (
-                                 """
-                                 <html>
-                                 Cannot have translucent pixels in a GIF!<br>
-                                 Translucent means that the pixel has an alpha value where 0 &lt; alpha &lt; 255!<br>
-                                 Here are the list of translucent pixels.<br>
-                                 Please remember, the top-left most pixel is row = 0 and column = 0!
-                                 </html>
-                                 """
-                              )
-                        )
-                        ;
-                  
-                     listOfBadPixels
-                        .add
-                        (
-                           new
-                              JScrollPane
-                              (
-                                 new
-                                    JList<String>
-                                    (
-                                       IntStream
-                                          .range(0, pixels.size())
-                                          .mapToObj(eachInt -> Pixel.of(eachInt, pixels.get(eachInt), this))
-                                          .filter(eachPixel -> !isOpaqueOrTransparent.test(eachPixel.color()))
-                                          .map(eachPixel -> eachPixel + " -- alpha = " + eachPixel.color().getAlpha())
-                                          .toArray(String[]::new)
-                                    )
-                              )
-                        )
-                        ;
-                  
-                     JOptionPane
-                        .showMessageDialog
-                        (
-                           this.frame,
-                           listOfBadPixels,
-                           "Cannot have translucent pixels in a GIF!",
-                           JOptionPane.ERROR_MESSAGE
-                        );
-                  
-                     return;
-                  
-                  }
-               
-               }
-            
-               final BufferedImage finalImage =
-                  new
-                     BufferedImage
-                     (
-                        this.numPixelColumns,
-                        this.numPixelRows,
-                        BufferedImage.TYPE_INT_ARGB
-                     )
-                     ;
-            
-               for (int row = 0; row < this.numPixelRows; row++)
-               {
-               
-                  for (int column = 0; column < this.numPixelColumns; column++)
-                  {
-                  
-                     final int index = (row * this.numPixelColumns) + column;
-                  
-                     final Color pixel = pixels.get(index);
-                     System.out.println(pixel);
-                     System.out.println(pixel.getRGB());
-                     finalImage.setRGB(column, row, pixel.getRGB());
-                  
-                  }
-               
-               }
-            
-               try
-               {
-               
-                  final String imageTypeString = imageType.name().toLowerCase();
-               
-                  ImageIO
-                     .write
-                     (
-                        finalImage,
-                        imageTypeString,
-                        new
-                           File
-                           (
-                              LocalDateTime
-                                 .now()
-                                 .format
-                                 (
-                                    DateTimeFormatter
-                                       .ofPattern("yyyyMMdd_HHmmss_SSS")
-                                 )
-                                 +
-                                 "."
-                                 +
-                                 imageType
-                           )
-                     )
-                     ;
-               
-               }
-               
-               catch (final Exception e)
-               {
-               
-                  throw new RuntimeException(e);
-               
-               }
-            
+            //
+               // final int selectedIndex = imageTypeDropDownMenu.getSelectedIndex();
+            //
+               // final ImageType imageType = ImageType.values()[selectedIndex];
+            //
+               // final List<Color> pixels =
+                  // this
+                  //    .cells
+                  //    .stream()
+                  //    .map(JButton::getBackground)
+                  //    .toList()
+                  //    ;
+            //
+               // PERFORM_VALIDATIONS:
+               // {
+               //
+                  // final Predicate<Color> isOpaqueOrTransparent =
+                     // givenColor ->
+                     //    givenColor.getAlpha() == 0
+                     //    ||
+                     //    givenColor.getAlpha() == 255
+                     //    ;
+               //
+                  // final boolean canSaveCorrectly =
+                     // switch (imageType)
+                     // {
+                     //
+                        // case  PNG   -> true;
+                        // case  GIF   ->
+                           // pixels
+                              // .stream()
+                              // .allMatch(isOpaqueOrTransparent)
+                              // ;
+                     //
+                     // }
+                     // ;
+               //
+                  // if (!canSaveCorrectly)
+                  // {
+                  //
+                     // record Pixel(int row, int column, Color color)
+                     // {
+                     //
+                        // public Pixel
+                        // {
+                        //
+                           // Objects.requireNonNull(color);
+                        //
+                        // }
+                     //
+                        // public static Pixel of(final int index, final Color color, final GUI gui)
+                        // {
+                        //
+                           // Objects.requireNonNull(color);
+                           // Objects.requireNonNull(gui);
+                        //
+                           // final int maxRows    = gui.numImagePixelRows;
+                           // final int maxColumns = gui.numImagePixelColumns;
+                        //
+                           // final int row     = index / maxColumns;
+                           // final int column  = index % maxColumns;
+                        //
+                           // return
+                              // new
+                              //    Pixel
+                              //    (
+                              //       row,
+                              //       column,
+                              //       color
+                              //    );
+                        //
+                        // }
+                     //
+                     // }
+                  //
+                     // final JPanel listOfBadPixels = new JPanel();
+                     // listOfBadPixels.setLayout(new BoxLayout(listOfBadPixels, BoxLayout.PAGE_AXIS));
+                     // listOfBadPixels
+                        // .add
+                        // (
+                        //    new
+                        //       JLabel
+                        //       (
+                        //          """
+                        //          <html>
+                        //          Cannot have translucent pixels in a GIF!<br>
+                        //          Translucent means that the pixel has an alpha value where 0 &lt; alpha &lt; 255!<br>
+                        //          Here are the list of translucent pixels.<br>
+                        //          Please remember, the top-left most pixel is row = 0 and column = 0!
+                        //          </html>
+                        //          """
+                        //       )
+                        // )
+                        // ;
+                  //
+                     // listOfBadPixels
+                        // .add
+                        // (
+                        //    new
+                        //       JScrollPane
+                        //       (
+                        //          new
+                        //             JList<String>
+                        //             (
+                        //                IntStream
+                        //                   .range(0, pixels.size())
+                        //                   .mapToObj(eachInt -> Pixel.of(eachInt, pixels.get(eachInt), this))
+                        //                   .filter(eachPixel -> !isOpaqueOrTransparent.test(eachPixel.color()))
+                        //                   .map(eachPixel -> eachPixel + " -- alpha = " + eachPixel.color().getAlpha())
+                        //                   .toArray(String[]::new)
+                        //             )
+                        //       )
+                        // )
+                        // ;
+                  //
+                     // JOptionPane
+                        // .showMessageDialog
+                        // (
+                        //    this.frame,
+                        //    listOfBadPixels,
+                        //    "Cannot have translucent pixels in a GIF!",
+                        //    JOptionPane.ERROR_MESSAGE
+                        // );
+                  //
+                     // return;
+                  //
+                  // }
+               //
+               // }
+            //
+               // final BufferedImage finalImage =
+                  // new
+                  //    BufferedImage
+                  //    (
+                  //       this.numImagePixelColumns,
+                  //       this.numImagePixelRows,
+                  //       BufferedImage.TYPE_INT_ARGB
+                  //    )
+                  //    ;
+            //
+               // for (int row = 0; row < this.numImagePixelRows; row++)
+               // {
+               //
+                  // for (int column = 0; column < this.numImagePixelColumns; column++)
+                  // {
+                  //
+                     // final int index = (row * this.numImagePixelColumns) + column;
+                  //
+                     // final Color pixel = pixels.get(index);
+                     // System.out.println(pixel);
+                     // System.out.println(pixel.getRGB());
+                     // finalImage.setRGB(column, row, pixel.getRGB());
+                  //
+                  // }
+               //
+               // }
+            //
+               // try
+               // {
+               //
+                  // final String imageTypeString = imageType.name().toLowerCase();
+               //
+                  // ImageIO
+                     // .write
+                     // (
+                     //    finalImage,
+                     //    imageTypeString,
+                     //    new
+                     //       File
+                     //       (
+                     //          LocalDateTime
+                     //             .now()
+                     //             .format
+                     //             (
+                     //                DateTimeFormatter
+                     //                   .ofPattern("yyyyMMdd_HHmmss_SSS")
+                     //             )
+                     //             +
+                     //             "."
+                     //             +
+                     //             imageType
+                     //       )
+                     // )
+                     // ;
+               //
+               // }
+               //
+               // catch (final Exception e)
+               // {
+               //
+                  // throw new RuntimeException(e);
+               //
+               // }
+            //
             }
-         
          )
          ;
    
@@ -787,57 +945,16 @@ public class GUI
    
    }
 
-   private JComponent fetchNextCell(final KeyStroke keyStroke, final int currentIndex, final int totalSize)
+   private Dimension deriveDrawingAreaDimensions()
    {
    
       return
-         this
-            .cells
-            .get
-            (
-               switch (keyStroke.getKeyCode())
-               {
-               
-                  case KeyEvent.VK_UP     -> currentIndex   >= this.numPixelColumns                               ? currentIndex - this.numPixelColumns : currentIndex;
-                  case KeyEvent.VK_DOWN   -> currentIndex   <  totalSize - this.numPixelColumns                   ? currentIndex + this.numPixelColumns : currentIndex;
-                  case KeyEvent.VK_LEFT   -> currentIndex   %  this.numPixelColumns != 0                          ? currentIndex - 1 : currentIndex;
-                  case KeyEvent.VK_RIGHT  -> currentIndex   %  this.numPixelColumns != this.numPixelColumns - 1   ? currentIndex + 1 : currentIndex;
-                  default                 -> currentIndex;
-               
-               }
-            )
-            ;
-   
-   }
-
-   private static <T> void join(final Future<T> future)
-   {
-   
-      try
-      {
-      
-         System.out.println(future.get());
-      
-      }
-      
-      catch (final Exception e)
-      {
-      
-         throw new RuntimeException(e);
-      
-      }
-   
-   }
-
-   private void setKeyBinding(final JButton button, final KeyStroke keyStroke, final BiFunction<JButton, KeyStroke, Action> actionFunction)
-   {
-   
-      Objects.requireNonNull(button);
-      Objects.requireNonNull(keyStroke);
-      Objects.requireNonNull(actionFunction);
-   
-      button.getInputMap().put(keyStroke, keyStroke.toString());
-      button.getActionMap().put(keyStroke.toString(), actionFunction.apply(button, keyStroke));
+         new Dimension
+         (
+            this.numImagePixelRows * this.screenToImagePixelRatio,
+            this.numImagePixelColumns * this.screenToImagePixelRatio
+         )
+         ;
    
    }
 
