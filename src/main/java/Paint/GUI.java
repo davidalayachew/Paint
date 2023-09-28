@@ -21,7 +21,7 @@ import java.util.concurrent.*;
 import java.util.function.*;
 import java.util.stream.*;
 
-public class GUI
+public final class GUI
 {
 
    private enum KeyboardColorHotKey
@@ -167,7 +167,7 @@ public class GUI
       final JPanel drawingPanel;
    
       final Runnable UPDATE_DRAWING_PANEL_BORDER_TEXT;
-      final Runnable UPDATE_DRAWING_PANEL_SIZE;
+      final Runnable UPDATE_DRAWING_PANEL_ZOOM_LEVEL;
       final Runnable REPAINT_DRAWING_PANEL;
    
       CREATE_DRAWING_PANEL:
@@ -218,11 +218,11 @@ public class GUI
       
          UPDATE_DRAWING_PANEL_BORDER_TEXT.run();
       
-         UPDATE_DRAWING_PANEL_SIZE =
+         UPDATE_DRAWING_PANEL_ZOOM_LEVEL =
             () ->
             {
             
-               drawingPanel.remove(0);
+               drawingPanel.removeAll();
             
                final Dimension drawingArea = gui.deriveDrawingAreaDimensions();
             
@@ -240,7 +240,7 @@ public class GUI
                            throw new RuntimeException("Unknown graphics type = " + dontUse);
                         
                         }
-                     
+                        
                         DRAW_DRAWN_PIXELS:
                         {
                         
@@ -308,6 +308,22 @@ public class GUI
                         
                            final Point maybeNewPoint = mouseEvent.getPoint();
                         
+                           if
+                           (
+                              maybeNewPoint.x < 0
+                              ||
+                              maybeNewPoint.x >= drawingArea.width
+                              ||
+                              maybeNewPoint.y < 0
+                              ||
+                              maybeNewPoint.y >= drawingArea.height
+                           )
+                           {
+                           
+                              return;
+                           
+                           }
+                        
                            final int x = (maybeNewPoint.x - (maybeNewPoint.x % gui.screenToImagePixelRatio)) / gui.screenToImagePixelRatio;
                            final int y = (maybeNewPoint.y - (maybeNewPoint.y % gui.screenToImagePixelRatio)) / gui.screenToImagePixelRatio;
                         
@@ -359,6 +375,22 @@ public class GUI
                         {
                         
                            final Point maybeNewPoint = mouseEvent.getPoint();
+                           
+                           if
+                           (
+                              maybeNewPoint.x < 0
+                              ||
+                              maybeNewPoint.x >= drawingArea.width
+                              ||
+                              maybeNewPoint.y < 0
+                              ||
+                              maybeNewPoint.y >= drawingArea.height
+                           )
+                           {
+                           
+                              return;
+                           
+                           }
                         
                            final int x = (maybeNewPoint.x - (maybeNewPoint.x % gui.screenToImagePixelRatio)) / gui.screenToImagePixelRatio;
                            final int y = (maybeNewPoint.y - (maybeNewPoint.y % gui.screenToImagePixelRatio)) / gui.screenToImagePixelRatio;
@@ -422,14 +454,16 @@ public class GUI
                   )
                   ;
             
-               drawingPanel.add(new JScrollPane(box));
+               drawingPanel.add(Box.createHorizontalGlue());
+               drawingPanel.add(box);
+               drawingPanel.add(Box.createHorizontalGlue());
             
                REPAINT_DRAWING_PANEL.run();
             
             }
             ;
       
-         UPDATE_DRAWING_PANEL_SIZE.run();
+         UPDATE_DRAWING_PANEL_ZOOM_LEVEL.run();
       
       }
    
@@ -458,7 +492,9 @@ public class GUI
                         )
                         ;
                
-                  UPDATE_DRAWING_PANEL_SIZE.run();
+                  this.mouseCurrentLocation = new Point(0, 0);
+               
+                  UPDATE_DRAWING_PANEL_ZOOM_LEVEL.run();
                
                }
             );
@@ -596,6 +632,10 @@ public class GUI
             
                this.penSize = penSizeDropDownMenu.getItemAt(penSizeDropDownMenu.getSelectedIndex());
             
+               this.mouseCurrentLocation = new Point(0, 0);
+               
+               this.frame.repaint();
+            
             }
          );
    
@@ -716,6 +756,16 @@ public class GUI
    private JPanel createBottomPanel()
    {
    
+      final Color transparentColor = new Color(0, 0, 0, 0);
+   
+      final List<Color> pixels =
+         this
+            .imagePixels
+            .stream()
+            .map(each -> Objects.requireNonNullElse(each, transparentColor))
+            .toList()
+            ;
+   
       final JPanel panel = new JPanel();
    
       panel.setLayout(new BoxLayout(panel, BoxLayout.LINE_AXIS));
@@ -738,138 +788,130 @@ public class GUI
       save
          .addActionListener
          (
-            event ->
+            actionEvent ->
             {
-            //
-               // final int selectedIndex = imageTypeDropDownMenu.getSelectedIndex();
-            //
-               // final ImageType imageType = ImageType.values()[selectedIndex];
-            //
-               // final List<Color> pixels =
-                  // this
-                  //    .cells
-                  //    .stream()
-                  //    .map(JButton::getBackground)
-                  //    .toList()
-                  //    ;
-            //
-               // PERFORM_VALIDATIONS:
-               // {
-               //
-                  // final Predicate<Color> isOpaqueOrTransparent =
-                     // givenColor ->
-                     //    givenColor.getAlpha() == 0
-                     //    ||
-                     //    givenColor.getAlpha() == 255
-                     //    ;
-               //
-                  // final boolean canSaveCorrectly =
-                     // switch (imageType)
-                     // {
-                     //
-                        // case  PNG   -> true;
-                        // case  GIF   ->
-                           // pixels
-                              // .stream()
-                              // .allMatch(isOpaqueOrTransparent)
-                              // ;
-                     //
-                     // }
-                     // ;
-               //
-                  // if (!canSaveCorrectly)
-                  // {
-                  //
-                     // record Pixel(int row, int column, Color color)
-                     // {
-                     //
-                        // public Pixel
-                        // {
-                        //
-                           // Objects.requireNonNull(color);
-                        //
-                        // }
-                     //
-                        // public static Pixel of(final int index, final Color color, final GUI gui)
-                        // {
-                        //
-                           // Objects.requireNonNull(color);
-                           // Objects.requireNonNull(gui);
-                        //
-                           // final int maxRows    = gui.numImagePixelRows;
-                           // final int maxColumns = gui.numImagePixelColumns;
-                        //
-                           // final int row     = index / maxColumns;
-                           // final int column  = index % maxColumns;
-                        //
-                           // return
-                              // new
-                              //    Pixel
-                              //    (
-                              //       row,
-                              //       column,
-                              //       color
-                              //    );
-                        //
-                        // }
-                     //
-                     // }
-                  //
-                     // final JPanel listOfBadPixels = new JPanel();
-                     // listOfBadPixels.setLayout(new BoxLayout(listOfBadPixels, BoxLayout.PAGE_AXIS));
-                     // listOfBadPixels
-                        // .add
-                        // (
-                        //    new
-                        //       JLabel
-                        //       (
-                        //          """
-                        //          <html>
-                        //          Cannot have translucent pixels in a GIF!<br>
-                        //          Translucent means that the pixel has an alpha value where 0 &lt; alpha &lt; 255!<br>
-                        //          Here are the list of translucent pixels.<br>
-                        //          Please remember, the top-left most pixel is row = 0 and column = 0!
-                        //          </html>
-                        //          """
-                        //       )
-                        // )
-                        // ;
-                  //
-                     // listOfBadPixels
-                        // .add
-                        // (
-                        //    new
-                        //       JScrollPane
-                        //       (
-                        //          new
-                        //             JList<String>
-                        //             (
-                        //                IntStream
-                        //                   .range(0, pixels.size())
-                        //                   .mapToObj(eachInt -> Pixel.of(eachInt, pixels.get(eachInt), this))
-                        //                   .filter(eachPixel -> !isOpaqueOrTransparent.test(eachPixel.color()))
-                        //                   .map(eachPixel -> eachPixel + " -- alpha = " + eachPixel.color().getAlpha())
-                        //                   .toArray(String[]::new)
-                        //             )
-                        //       )
-                        // )
-                        // ;
-                  //
-                     // JOptionPane
-                        // .showMessageDialog
-                        // (
-                        //    this.frame,
-                        //    listOfBadPixels,
-                        //    "Cannot have translucent pixels in a GIF!",
-                        //    JOptionPane.ERROR_MESSAGE
-                        // );
-                  //
-                     // return;
-                  //
-                  // }
-               //
-               // }
-            //
+            
+               final int selectedIndex = imageTypeDropDownMenu.getSelectedIndex();
+            
+               final ImageType imageType = ImageType.values()[selectedIndex];
+            
+               PERFORM_VALIDATIONS:
+               {
+               
+                  final Predicate<Color> isOpaqueOrTransparent =
+                     givenColor ->
+                        givenColor.getAlpha() == 0
+                        ||
+                        givenColor.getAlpha() == 255
+                        ;
+               
+                  final boolean canSaveCorrectly =
+                     switch (imageType)
+                     {
+                     
+                        case  PNG   -> true;
+                        case  GIF   ->
+                           pixels
+                              .stream()
+                              .allMatch(isOpaqueOrTransparent)
+                              ;
+                     
+                     }
+                     ;
+               
+                  if (!canSaveCorrectly)
+                  {
+                  
+                     record Pixel(int row, int column, Color color)
+                     {
+                     
+                        public Pixel
+                        {
+                        
+                           Objects.requireNonNull(color);
+                        
+                        }
+                     
+                        public static Pixel of(final int index, final Color color, final GUI gui)
+                        {
+                        
+                           Objects.requireNonNull(color);
+                           Objects.requireNonNull(gui);
+                        
+                           final int maxRows    = gui.numImagePixelRows;
+                           final int maxColumns = gui.numImagePixelColumns;
+                        
+                           final int row     = index / maxColumns;
+                           final int column  = index % maxColumns;
+                        
+                           return
+                              new
+                                 Pixel
+                                 (
+                                    row,
+                                    column,
+                                    color
+                                 );
+                        
+                        }
+                     
+                     }
+                  
+                     final JPanel listOfBadPixels = new JPanel();
+                     listOfBadPixels.setLayout(new BoxLayout(listOfBadPixels, BoxLayout.PAGE_AXIS));
+                     listOfBadPixels
+                        .add
+                        (
+                           new
+                              JLabel
+                              (
+                                 """
+                                 <html>
+                                 Cannot have translucent pixels in a GIF!<br>
+                                 Translucent means that the pixel has an alpha value where 0 &lt; alpha &lt; 255!<br>
+                                 Here are the list of translucent pixels.<br>
+                                 Please remember, the top-left most pixel is row = 0 and column = 0!
+                                 </html>
+                                 """
+                              )
+                        )
+                        ;
+                  
+                     listOfBadPixels
+                        .add
+                        (
+                           new
+                              JScrollPane
+                              (
+                                 new
+                                    JList<String>
+                                    (
+                                       IntStream
+                                          .range(0, pixels.size())
+                                          .mapToObj(eachInt -> Pixel.of(eachInt, pixels.get(eachInt), this))
+                                          .filter(eachPixel -> !isOpaqueOrTransparent.test(eachPixel.color()))
+                                          .map(eachPixel -> eachPixel + " -- alpha = " + eachPixel.color().getAlpha())
+                                          .toArray(String[]::new)
+                                    )
+                              )
+                        )
+                        ;
+                  
+                     JOptionPane
+                        .showMessageDialog
+                        (
+                           this.frame,
+                           listOfBadPixels,
+                           "Cannot have translucent pixels in a GIF!",
+                           JOptionPane.ERROR_MESSAGE
+                        );
+                  
+                     return;
+                  
+                  }
+               
+               }
+            
                // final BufferedImage finalImage =
                   // new
                   //    BufferedImage
@@ -938,8 +980,8 @@ public class GUI
          )
          ;
    
-      panel.add(save);
-      panel.add(imageTypeDropDownMenu);
+      // panel.add(save);
+      // panel.add(imageTypeDropDownMenu);
    
       return panel;
    
@@ -951,8 +993,8 @@ public class GUI
       return
          new Dimension
          (
-            this.numImagePixelRows * this.screenToImagePixelRatio,
-            this.numImagePixelColumns * this.screenToImagePixelRatio
+            this.numImagePixelColumns * this.screenToImagePixelRatio,
+            this.numImagePixelRows * this.screenToImagePixelRatio
          )
          ;
    

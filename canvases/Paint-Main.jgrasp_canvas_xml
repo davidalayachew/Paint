@@ -16,10 +16,10 @@
   <Frame>
     <Bounds>
       <AutoSize>true</AutoSize>
-      <X>30</X>
-      <Y>110</Y>
-      <W>240</W>
-      <H>72</H>
+      <X>2</X>
+      <Y>30</Y>
+      <W>243</W>
+      <H>75</H>
     </Bounds>
     <Viewer>
       <ScopeID>0</ScopeID>
@@ -28,15 +28,15 @@
     </Viewer>
   </Frame>
   <Size>
-    <W>258</W>
-    <H>427</H>
+    <W>268</W>
+    <H>398</H>
   </Size>
   <ESize>
     <W>683</W>
     <H>384</H>
   </ESize>
   <ISize>
-    <W>544</W>
-    <H>284</H>
+    <W>229</W>
+    <H>242</H>
   </ISize>
 </Canvas>
