@@ -3,6 +3,7 @@ package Paint;
 
 import javax.imageio.*;
 import javax.swing.*;
+import javax.swing.colorchooser.*;
 import javax.swing.border.*;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -21,7 +22,7 @@ import java.util.concurrent.*;
 import java.util.function.*;
 import java.util.stream.*;
 
-public final class GUI
+public class GUI
 {
 
    private enum KeyboardColorHotKey
@@ -80,13 +81,16 @@ public final class GUI
    private static final int DEFAULT_IMAGE_PIXEL_COLUMNS = 24;
 
    private final List<Color> imagePixels =
-      Arrays.asList(new Color[DEFAULT_IMAGE_PIXEL_ROWS * DEFAULT_IMAGE_PIXEL_COLUMNS]);
+      Arrays
+         .asList(new Color[DEFAULT_IMAGE_PIXEL_ROWS * DEFAULT_IMAGE_PIXEL_COLUMNS]);
    private final JFrame frame;
 
    private Color transparencyColor = Color.WHITE;
    private Color cursorColor = Color.BLACK;
+   private Color gridLinesColor = Color.GRAY;
    private Point mouseCurrentLocation = new Point(0, 0);
    private boolean coloring = false;
+   private boolean hasGridLines = true;
    private int numImagePixelRows = DEFAULT_IMAGE_PIXEL_ROWS;
    private int numImagePixelColumns = DEFAULT_IMAGE_PIXEL_COLUMNS;
    private int penSize = 1;
@@ -240,54 +244,127 @@ public final class GUI
                            throw new RuntimeException("Unknown graphics type = " + dontUse);
                         
                         }
-                        
+                     
                         DRAW_DRAWN_PIXELS:
                         {
                         
-                           IntStream
-                              .range(0, gui.numImagePixelRows * gui.numImagePixelColumns)
-                              .forEach
-                              (
-                                 eachIndex ->
-                                 {
-                                 
-                                    final Color currentPixel = gui.imagePixels.get(eachIndex);
-                                 
-                                    final int x = eachIndex % gui.numImagePixelColumns;
-                                    final int y = eachIndex / gui.numImagePixelColumns;
-                                 
-                                    g.setColor(currentPixel == null ? gui.transparencyColor : currentPixel);
-                                    g
-                                       .fillRect
-                                       (
-                                          x * gui.screenToImagePixelRatio,
-                                          y * gui.screenToImagePixelRatio,
-                                          gui.screenToImagePixelRatio,
-                                          gui.screenToImagePixelRatio
-                                       )
-                                       ;
-                                 
-                                 }
-                              )
-                              ;
+                           DRAW_IMAGE:
+                           {
+                           
+                              IntStream
+                                 .range(0, gui.numImagePixelRows * gui.numImagePixelColumns)
+                                 .forEach
+                                 (
+                                    eachIndex ->
+                                    {
+                                    
+                                       final Color currentPixel = gui.imagePixels.get(eachIndex);
+                                    
+                                       final int imagePixelX = eachIndex % gui.numImagePixelColumns;
+                                       final int imagePixelY = eachIndex / gui.numImagePixelColumns;
+                                    
+                                       final int screenPixelX = imagePixelX * gui.screenToImagePixelRatio;
+                                       final int screenPixelY = imagePixelY * gui.screenToImagePixelRatio;
+                                    
+                                       final int screenPixelCursorSize = gui.screenToImagePixelRatio * gui.penSize;
+                                    
+                                       g.setColor(currentPixel == null ? gui.transparencyColor : currentPixel);
+                                       g
+                                          .fillRect
+                                          (
+                                             screenPixelX,
+                                             screenPixelY,
+                                             gui.screenToImagePixelRatio,
+                                             gui.screenToImagePixelRatio
+                                          )
+                                          ;
+                                    
+                                    }
+                                 )
+                                 ;
+                           
+                           }
                         
-                        }
-                     
-                        DRAW_CURSOR_PIXELS:
-                        {
+                           DRAW_CURSOR:
+                           {
+                           
+                              IntStream
+                                 .range(0, gui.numImagePixelRows * gui.numImagePixelColumns)
+                                 .forEach
+                                 (
+                                 
+                                 
+                                    eachIndex ->
+                                    {
+                                    
+                                       final int imagePixelX = eachIndex % gui.numImagePixelColumns;
+                                       final int imagePixelY = eachIndex / gui.numImagePixelColumns;
+                                    
+                                       final int screenPixelX = imagePixelX * gui.screenToImagePixelRatio;
+                                       final int screenPixelY = imagePixelY * gui.screenToImagePixelRatio;
+                                    
+                                       final int screenPixelCursorSize = gui.screenToImagePixelRatio * gui.penSize;
+                                    
+                                       g.setColor(gui.cursorColor);
+                                    
+                                       if (new Point(screenPixelX, screenPixelY).equals(gui.mouseCurrentLocation))
+                                       {
+                                       
+                                          g
+                                             .fillRect
+                                             (
+                                                gui.mouseCurrentLocation.x,
+                                                gui.mouseCurrentLocation.y,
+                                                screenPixelCursorSize,
+                                                screenPixelCursorSize
+                                             )
+                                             ;
+                                       
+                                       }
+                                    
+                                    }
+                                 )
+                                 ;
+                           
+                           }
                         
-                           final int screenPixelCursorSize = gui.screenToImagePixelRatio * gui.penSize;
-                        
-                           g.setColor(gui.cursorColor);
-                           g
-                              .fillRect
-                              (
-                                 gui.mouseCurrentLocation.x,
-                                 gui.mouseCurrentLocation.y,
-                                 screenPixelCursorSize,
-                                 screenPixelCursorSize
-                              )
-                              ;
+                           DRAW_GRID_LINES:
+                           {
+                           
+                              if (gui.hasGridLines)
+                              {
+                              
+                                 IntStream
+                                    .range(0, gui.numImagePixelRows * gui.numImagePixelColumns)
+                                    .forEach
+                                    (
+                                       eachIndex ->
+                                       {
+                                       
+                                          final int imagePixelX = eachIndex % gui.numImagePixelColumns;
+                                          final int imagePixelY = eachIndex / gui.numImagePixelColumns;
+                                       
+                                          final int screenPixelX = imagePixelX * gui.screenToImagePixelRatio;
+                                          final int screenPixelY = imagePixelY * gui.screenToImagePixelRatio;
+                                       
+                                          g.setColor(gui.gridLinesColor);
+                                          g
+                                             .drawRect
+                                             (
+                                                screenPixelX,
+                                                screenPixelY,
+                                                gui.screenToImagePixelRatio - 1,
+                                                gui.screenToImagePixelRatio - 1
+                                             )
+                                             ;
+                                       
+                                       }
+                                    )
+                                    ;
+                              
+                              }
+                           
+                           }
                         
                         }
                      
@@ -375,7 +452,7 @@ public final class GUI
                         {
                         
                            final Point maybeNewPoint = mouseEvent.getPoint();
-                           
+                        
                            if
                            (
                               maybeNewPoint.x < 0
@@ -585,6 +662,30 @@ public final class GUI
          
          }
       
+         final JCheckBox hasGridLinesCheckBox;
+      
+         HAS_GRID_LINES_CHECK_BOX:
+         {
+         
+            hasGridLinesCheckBox = new JCheckBox();
+            hasGridLinesCheckBox.setText("Activate Grid Lines");
+            hasGridLinesCheckBox.setSelected(true);
+            hasGridLinesCheckBox
+               .addActionListener
+               (
+                  event ->
+                  {
+                  
+                     this.hasGridLines = hasGridLinesCheckBox.isSelected();
+                  
+                     REPAINT_DRAWING_PANEL.run();
+                  
+                  }
+               )
+               ;
+         
+         }
+      
          drawingSettingsPanel.add(Box.createHorizontalGlue());
          drawingSettingsPanel.add(screenToImagePixelRatioDropDownMenu);
          drawingSettingsPanel.add(new JLabel("SCREEN pixels = 1 IMAGE pixel"));
@@ -592,12 +693,14 @@ public final class GUI
          drawingSettingsPanel.add(transparencyColorChooser);
          drawingSettingsPanel.add(Box.createHorizontalStrut(10));
          drawingSettingsPanel.add(cursorColorChooser);
+         drawingSettingsPanel.add(Box.createHorizontalStrut(10));
+         drawingSettingsPanel.add(hasGridLinesCheckBox);
          drawingSettingsPanel.add(Box.createHorizontalGlue());
       
       }
    
       mainPanel.add(drawingSettingsPanel, BorderLayout.NORTH);
-      mainPanel.add(drawingPanel, BorderLayout.CENTER);
+      mainPanel.add(new JScrollPane(drawingPanel), BorderLayout.CENTER);
    
       return mainPanel;
    
@@ -622,7 +725,8 @@ public final class GUI
                   )
                   .boxed()
                   .toArray(Integer[]::new)
-            );
+            )
+            ;
    
       penSizeDropDownMenu
          .addActionListener
@@ -630,10 +734,12 @@ public final class GUI
             event ->
             {
             
-               this.penSize = penSizeDropDownMenu.getItemAt(penSizeDropDownMenu.getSelectedIndex());
+               this.penSize =
+                  penSizeDropDownMenu
+                     .getItemAt(penSizeDropDownMenu.getSelectedIndex());
             
                this.mouseCurrentLocation = new Point(0, 0);
-               
+            
                this.frame.repaint();
             
             }
@@ -648,106 +754,33 @@ public final class GUI
    private JPanel createColorChooserPanel()
    {
    
-      final int NUM_ROWS = 3;
-      final int NUM_COLUMNS = 3;
       final String DIALOG_TITLE = "Choose a color";
    
-      final JPanel panel = new JPanel(new GridLayout(NUM_ROWS, NUM_COLUMNS));
+      final JPanel panel = new JPanel();
+      panel.setLayout(new BoxLayout(panel, BoxLayout.LINE_AXIS));
    
       panel.setBorder(TITLED_BORDER.apply("Color"));
    
-      for (int index = 0; index < NUM_ROWS * NUM_COLUMNS; index++)
-      {
-      
-         final JButton button =
-            new JButton("" + KeyboardColorHotKey.values()[index])
+      final JColorChooser colorChooser = new JColorChooser();
+      colorChooser.setPreviewPanel(new JPanel());
+      colorChooser
+         .getSelectionModel()
+         .addChangeListener
+         (
+            event ->
             {
             
-               private static final int JUMP = 10;
+               final Color chosenColor = colorChooser.getSelectionModel().getSelectedColor();
             
-               @Override
-               protected void paintComponent(final Graphics g)
-               {
-               
-                  drawCheckerBoard(g);
-               
-                  g.setColor(this.getBackground());
-                  g.fillRect(0, 0, this.getWidth(), this.getHeight());
-               
-                  super.paintComponent(g);
-               
-               }
+               this.cursorColor = chosenColor == null ? this.transparencyColor : chosenColor;
             
-               private void drawCheckerBoard(final Graphics g)
-               {
-               
-                  for (int row = 0; row < this.getHeight(); row+=JUMP)
-                  {
-                  
-                     for (int column = 0; column < this.getWidth(); column+=JUMP)
-                     {
-                     
-                        g.setColor((row + column) % (JUMP * 2) == 0 || this.isCenterish(row, column) ? Color.white : Color.BLACK);
-                        g.fillRect(column, row, JUMP, JUMP);
-                     
-                     }
-                  
-                  }
-               
-               }
-            
-               private boolean isCenterish(final int row, final int column)
-               {
-               
-                  final int MAX_ROW = this.getHeight();
-                  final int MAX_COLUMN = this.getWidth();
-               
-                  final boolean ROW_IS_CENTERISH =
-                     (MAX_ROW / 2) - (JUMP * 2) <= row && (MAX_ROW / 2) + JUMP >= row;
-                  final boolean COLUMN_IS_CENTERISH =
-                     (MAX_COLUMN / 2) - (JUMP * 2) <= column && (MAX_COLUMN / 2) + JUMP >= column;
-               
-                  return ROW_IS_CENTERISH && COLUMN_IS_CENTERISH;
-               
-               }
+               this.frame.repaint();
             
             }
-            ;
-      
-         button.setFont(button.getFont().deriveFont(20.0f));
-         button.setOpaque(false);
-         button.setBackground(KeyboardColorHotKey.values()[index].color);
-      
-         ON_CLICK:
-         {
-         
-            button
-               .addActionListener
-               (
-                  event ->
-                  {
-                  
-                     final Color chosenColor =
-                        JColorChooser
-                           .showDialog
-                           (
-                              button,
-                              DIALOG_TITLE,
-                              button.getBackground()
-                           );
-                  
-                     this.cursorColor = chosenColor;
-                     button.setBackground(chosenColor);
-                  
-                  }
-               );
-         
-         
-         }
-      
-         panel.add(button);
-      
-      }
+         )
+         ;
+   
+      panel.add(colorChooser);
    
       return panel;
    
