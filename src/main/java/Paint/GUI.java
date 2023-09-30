@@ -131,9 +131,22 @@ public class GUI
    
       final JPanel mainPanel = new JPanel(new BorderLayout());
    
-      mainPanel.add(this.createTopPanel(),         BorderLayout.NORTH);
-      mainPanel.add(this.createCenterPanel(),      BorderLayout.CENTER);
-      mainPanel.add(this.createBottomPanel(),      BorderLayout.SOUTH);
+      final Color transparentColor = new Color(0, 0, 0, 0);
+   
+      final List<Color> pixels =
+         this
+            .imagePixels
+            .stream()
+            .map(each -> Objects.requireNonNullElse(each, transparentColor))
+            .toList()
+            ;
+   
+      final int maxRows    = this.numImagePixelRows;
+      final int maxColumns = this.numImagePixelColumns;
+   
+      mainPanel.add(this.createTopPanel(),                                 BorderLayout.NORTH);
+      mainPanel.add(this.createCenterPanel(this.mouseCurrentLocation, this.screenToImagePixelRatio),                              BorderLayout.CENTER);
+      mainPanel.add(this.createBottomPanel(pixels, maxRows, maxColumns),   BorderLayout.SOUTH);
    
       return mainPanel;
    
@@ -153,7 +166,7 @@ public class GUI
    
    }
 
-   private JPanel createCenterPanel()
+   private JPanel createCenterPanel(final Point mouseCurrentLocation, final int jumpDistance)
    {
    
       final GUI gui = this; //useful when trying to differentiate between different this'.
@@ -225,6 +238,8 @@ public class GUI
          UPDATE_DRAWING_PANEL_ZOOM_LEVEL =
             () ->
             {
+            
+               final var thingToFocus = drawingPanel;
             
                drawingPanel.removeAll();
             
@@ -373,6 +388,102 @@ public class GUI
                   }
                   ;
             
+               final Consumer<Point> performClick =
+                  maybeNewPoint ->
+                  {
+                  
+                     if
+                     (
+                        maybeNewPoint.x < 0
+                        ||
+                        maybeNewPoint.x >= drawingArea.width
+                        ||
+                        maybeNewPoint.y < 0
+                        ||
+                        maybeNewPoint.y >= drawingArea.height
+                     )
+                     {
+                     
+                        return;
+                     
+                     }
+                  
+                     gui.mouseCurrentLocation.setLocation(maybeNewPoint);
+                  
+                     final int x = (maybeNewPoint.x - (maybeNewPoint.x % gui.screenToImagePixelRatio)) / gui.screenToImagePixelRatio;
+                     final int y = (maybeNewPoint.y - (maybeNewPoint.y % gui.screenToImagePixelRatio)) / gui.screenToImagePixelRatio;
+                  
+                     final int index = (y * gui.numImagePixelColumns) + x;
+                  
+                     final int startRow      = index / gui.numImagePixelColumns;
+                     final int startColumn   = index % gui.numImagePixelColumns;
+                  
+                     for
+                     (
+                        int row = startRow;
+                        row < gui.imagePixels.size() / gui.numImagePixelColumns
+                           && row < startRow + gui.penSize;
+                        row++
+                     )
+                     {
+                     
+                        for
+                        (
+                           int column = startColumn;
+                           column < gui.imagePixels.size() / gui.numImagePixelRows
+                              && column < startColumn + gui.penSize;
+                           column++
+                        )
+                        {
+                        
+                           gui.imagePixels.set((row * gui.numImagePixelColumns) + column, gui.cursorColor);
+                        
+                        }
+                     
+                     }
+                  
+                     REPAINT_DRAWING_PANEL.run();
+                  
+                  }
+                  ;
+            
+               final Consumer<Point> performMove =
+                  maybeNewPoint ->
+                  {
+                  
+                     if
+                     (
+                        maybeNewPoint.x < 0
+                        ||
+                        maybeNewPoint.x >= drawingArea.width
+                        ||
+                        maybeNewPoint.y < 0
+                        ||
+                        maybeNewPoint.y >= drawingArea.height
+                     )
+                     {
+                     
+                        return;
+                     
+                     }
+                  
+                     final int x = maybeNewPoint.x - (maybeNewPoint.x % gui.screenToImagePixelRatio);
+                     final int y = maybeNewPoint.y - (maybeNewPoint.y % gui.screenToImagePixelRatio);
+                  
+                     maybeNewPoint.setLocation(x, y);
+                  
+                     if (!gui.mouseCurrentLocation.equals(maybeNewPoint))
+                     {
+                     
+                        gui.mouseCurrentLocation.setLocation(maybeNewPoint);
+                     
+                        REPAINT_DRAWING_PANEL.run();
+                     
+                     }
+                  
+                  }
+                  ;
+            
                box
                   .addMouseListener
                   (
@@ -383,57 +494,9 @@ public class GUI
                         public void mousePressed(final MouseEvent mouseEvent)
                         {
                         
-                           final Point maybeNewPoint = mouseEvent.getPoint();
+                           performClick.accept(mouseEvent.getPoint());
                         
-                           if
-                           (
-                              maybeNewPoint.x < 0
-                              ||
-                              maybeNewPoint.x >= drawingArea.width
-                              ||
-                              maybeNewPoint.y < 0
-                              ||
-                              maybeNewPoint.y >= drawingArea.height
-                           )
-                           {
-                           
-                              return;
-                           
-                           }
-                        
-                           final int x = (maybeNewPoint.x - (maybeNewPoint.x % gui.screenToImagePixelRatio)) / gui.screenToImagePixelRatio;
-                           final int y = (maybeNewPoint.y - (maybeNewPoint.y % gui.screenToImagePixelRatio)) / gui.screenToImagePixelRatio;
-                        
-                           final int index = (y * gui.numImagePixelColumns) + x;
-                        
-                           final int startRow      = index / gui.numImagePixelColumns;
-                           final int startColumn   = index % gui.numImagePixelColumns;
-                        
-                           for
-                           (
-                              int row = startRow;
-                              row < gui.imagePixels.size() / gui.numImagePixelColumns
-                                 && row < startRow + gui.penSize;
-                              row++
-                           )
-                           {
-                           
-                              for
-                              (
-                                 int column = startColumn;
-                                 column < gui.imagePixels.size() / gui.numImagePixelRows
-                                    && column < startColumn + gui.penSize;
-                                 column++
-                              )
-                              {
-                              
-                                 gui.imagePixels.set((row * gui.numImagePixelColumns) + column, gui.cursorColor);
-                              
-                              }
-                           
-                           }
-                        
-                           REPAINT_DRAWING_PANEL.run();
+                           thingToFocus.requestFocus();
                         
                         }
                      
@@ -451,57 +514,7 @@ public class GUI
                         public void mouseDragged(final MouseEvent mouseEvent)
                         {
                         
-                           final Point maybeNewPoint = mouseEvent.getPoint();
-                        
-                           if
-                           (
-                              maybeNewPoint.x < 0
-                              ||
-                              maybeNewPoint.x >= drawingArea.width
-                              ||
-                              maybeNewPoint.y < 0
-                              ||
-                              maybeNewPoint.y >= drawingArea.height
-                           )
-                           {
-                           
-                              return;
-                           
-                           }
-                        
-                           final int x = (maybeNewPoint.x - (maybeNewPoint.x % gui.screenToImagePixelRatio)) / gui.screenToImagePixelRatio;
-                           final int y = (maybeNewPoint.y - (maybeNewPoint.y % gui.screenToImagePixelRatio)) / gui.screenToImagePixelRatio;
-                        
-                           final int index = (y * gui.numImagePixelColumns) + x;
-                        
-                           final int startRow      = index / gui.numImagePixelColumns;
-                           final int startColumn   = index % gui.numImagePixelColumns;
-                        
-                           for
-                           (
-                              int row = startRow;
-                              row < gui.imagePixels.size() / gui.numImagePixelColumns
-                                 && row < startRow + gui.penSize;
-                              row++
-                           )
-                           {
-                           
-                              for
-                              (
-                                 int column = startColumn;
-                                 column < gui.imagePixels.size() / gui.numImagePixelRows
-                                    && column < startColumn + gui.penSize;
-                                 column++
-                              )
-                              {
-                              
-                                 gui.imagePixels.set((row * gui.numImagePixelColumns) + column, gui.cursorColor);
-                              
-                              }
-                           
-                           }
-                        
-                           REPAINT_DRAWING_PANEL.run();
+                           performClick.accept(mouseEvent.getPoint());
                         
                         }
                      
@@ -511,19 +524,112 @@ public class GUI
                         
                            final Point maybeNewPoint = mouseEvent.getPoint();
                         
-                           final int x = maybeNewPoint.x - (maybeNewPoint.x % gui.screenToImagePixelRatio);
-                           final int y = maybeNewPoint.y - (maybeNewPoint.y % gui.screenToImagePixelRatio);
+                           performMove.accept(maybeNewPoint);
                         
-                           maybeNewPoint.setLocation(x, y);
-                        
-                           if (!gui.mouseCurrentLocation.equals(maybeNewPoint))
+                        }
+                     
+                     }
+                  )
+                  ;
+            
+               KEYBOARD_CONTROLS_FOR_DRAWING_AREA:
+               {
+               
+                  final InputMap inputMap = drawingPanel.getInputMap(JComponent.WHEN_FOCUSED);
+                  final ActionMap actionMap = drawingPanel.getActionMap();
+               
+                  final BiConsumer<KeyStroke, Action> keyboardControls =
+                     (keyStroke, action) ->
+                     {
+                     
+                        Objects.requireNonNull(keyStroke);
+                        Objects.requireNonNull(action);
+                     
+                        inputMap.put(keyStroke, keyStroke);
+                        actionMap.put(keyStroke, action);
+                     
+                     }
+                     ;
+               
+                  final Function<Boolean, Action> colorAction =
+                     coloring ->
+                     {
+                     
+                        return
+                           new AbstractAction()
                            {
                            
-                              gui.mouseCurrentLocation = maybeNewPoint;
-                           
-                              REPAINT_DRAWING_PANEL.run();
+                              @Override
+                              public void actionPerformed(final ActionEvent actionEvent)
+                              {
+                              
+                                 gui.coloring = coloring;
+                                 
+                                 performClick.accept(gui.mouseCurrentLocation);
+                              
+                              }
                            
                            }
+                           ;
+                     
+                     }
+                        ;
+               
+                  final Function<Consumer<Point>, Action> movementAction =
+                     pointModifier ->
+                     {
+                     
+                        return
+                           new AbstractAction()
+                           {
+                           
+                              @Override
+                              public void actionPerformed(final ActionEvent actionEvent)
+                              {
+                              
+                                 final Point somePoint = new Point(mouseCurrentLocation.x, mouseCurrentLocation.y);
+                              
+                                 pointModifier.accept(somePoint);
+                              
+                                 performMove.accept(somePoint);
+                              
+                                 if (coloring)
+                                 {
+                                 
+                                    performClick.accept(somePoint);
+                                 
+                                 }
+                              
+                                 REPAINT_DRAWING_PANEL.run();
+                              
+                              }
+                           
+                           }
+                           ;
+                     
+                     }
+                     ;
+               
+                  keyboardControls.accept(UP,            movementAction.apply(p -> p.translate( 0, -jumpDistance)));
+                  keyboardControls.accept(DOWN,          movementAction.apply(p -> p.translate( 0, +jumpDistance)));
+                  keyboardControls.accept(LEFT,          movementAction.apply(p -> p.translate(-jumpDistance,  0)));
+                  keyboardControls.accept(RIGHT,         movementAction.apply(p -> p.translate(+jumpDistance,  0)));
+                  keyboardControls.accept(SPACE_PRESS,   colorAction.apply(true));
+                  keyboardControls.accept(SPACE_RELEASE, colorAction.apply(false));
+               
+               }
+            
+               drawingPanel
+                  .addMouseListener
+                  (
+                     new MouseAdapter()
+                     {
+                     
+                        @Override
+                        public void mouseClicked(final MouseEvent mouseEvent)
+                        {
+                        
+                           thingToFocus.requestFocus();
                         
                         }
                      
@@ -569,7 +675,7 @@ public class GUI
                         )
                         ;
                
-                  this.mouseCurrentLocation = new Point(0, 0);
+                  this.mouseCurrentLocation.setLocation(new Point(0, 0));
                
                   UPDATE_DRAWING_PANEL_ZOOM_LEVEL.run();
                
@@ -738,7 +844,7 @@ public class GUI
                   penSizeDropDownMenu
                      .getItemAt(penSizeDropDownMenu.getSelectedIndex());
             
-               this.mouseCurrentLocation = new Point(0, 0);
+               this.mouseCurrentLocation.setLocation(new Point(0, 0));
             
                this.frame.repaint();
             
@@ -786,18 +892,8 @@ public class GUI
    
    }
 
-   private JPanel createBottomPanel()
+   private JPanel createBottomPanel(final List<Color> pixels, final int maxRows, final int maxColumns)
    {
-   
-      final Color transparentColor = new Color(0, 0, 0, 0);
-   
-      final List<Color> pixels =
-         this
-            .imagePixels
-            .stream()
-            .map(each -> Objects.requireNonNullElse(each, transparentColor))
-            .toList()
-            ;
    
       final JPanel panel = new JPanel();
    
@@ -865,14 +961,10 @@ public class GUI
                         
                         }
                      
-                        public static Pixel of(final int index, final Color color, final GUI gui)
+                        public static Pixel of(final int index, final Color color, final int maxRows, final int maxColumns)
                         {
                         
                            Objects.requireNonNull(color);
-                           Objects.requireNonNull(gui);
-                        
-                           final int maxRows    = gui.numImagePixelRows;
-                           final int maxColumns = gui.numImagePixelColumns;
                         
                            final int row     = index / maxColumns;
                            final int column  = index % maxColumns;
@@ -921,7 +1013,7 @@ public class GUI
                                     (
                                        IntStream
                                           .range(0, pixels.size())
-                                          .mapToObj(eachInt -> Pixel.of(eachInt, pixels.get(eachInt), this))
+                                          .mapToObj(eachInt -> Pixel.of(eachInt, pixels.get(eachInt), maxRows, maxColumns))
                                           .filter(eachPixel -> !isOpaqueOrTransparent.test(eachPixel.color()))
                                           .map(eachPixel -> eachPixel + " -- alpha = " + eachPixel.color().getAlpha())
                                           .toArray(String[]::new)
@@ -933,7 +1025,7 @@ public class GUI
                      JOptionPane
                         .showMessageDialog
                         (
-                           this.frame,
+                           null,
                            listOfBadPixels,
                            "Cannot have translucent pixels in a GIF!",
                            JOptionPane.ERROR_MESSAGE
