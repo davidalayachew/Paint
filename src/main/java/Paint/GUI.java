@@ -55,13 +55,41 @@ public class GUI
          .newWorkStealingPool()
          ;
 
-   private static final Dimension CELL_DIMENSIONS  = new Dimension(10, 10);
-   private static final KeyStroke UP               = KeyStroke.getKeyStroke(KeyEvent.VK_UP,     0, false );
-   private static final KeyStroke DOWN             = KeyStroke.getKeyStroke(KeyEvent.VK_DOWN,   0, false );
-   private static final KeyStroke LEFT             = KeyStroke.getKeyStroke(KeyEvent.VK_LEFT,   0, false );
-   private static final KeyStroke RIGHT            = KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT,  0, false );
-   private static final KeyStroke SPACE_PRESS      = KeyStroke.getKeyStroke(KeyEvent.VK_SPACE,  0, false );
-   private static final KeyStroke SPACE_RELEASE    = KeyStroke.getKeyStroke(KeyEvent.VK_SPACE,  0, true  );
+   private static final Dimension CELL_DIMENSIONS        = new Dimension(10, 10);
+
+   private static final KeyStroke NUMPAD_UP              = KeyStroke.getKeyStroke(KeyEvent.VK_KP_UP,     0, false );
+   private static final KeyStroke NUMPAD_DOWN            = KeyStroke.getKeyStroke(KeyEvent.VK_KP_DOWN,   0, false );
+   private static final KeyStroke NUMPAD_LEFT            = KeyStroke.getKeyStroke(KeyEvent.VK_KP_LEFT,   0, false );
+   private static final KeyStroke NUMPAD_RIGHT           = KeyStroke.getKeyStroke(KeyEvent.VK_KP_RIGHT,  0, false );
+   private static final KeyStroke HOME                   = KeyStroke.getKeyStroke(KeyEvent.VK_HOME,      0, false );
+   private static final KeyStroke END                    = KeyStroke.getKeyStroke(KeyEvent.VK_END,       0, false );
+   private static final KeyStroke PAGE_DOWN              = KeyStroke.getKeyStroke(KeyEvent.VK_PAGE_DOWN, 0, false );
+   private static final KeyStroke PAGE_UP                = KeyStroke.getKeyStroke(KeyEvent.VK_PAGE_UP,   0, false );
+   private static final KeyStroke NUMPAD_CLEAR_PRESS     = KeyStroke.getKeyStroke(KeyEvent.VK_CLEAR,     0, false );
+   private static final KeyStroke NUMPAD_CLEAR_RELEASE   = KeyStroke.getKeyStroke(KeyEvent.VK_CLEAR,     0, true  );
+
+   private static final KeyStroke NUMPAD_8               = KeyStroke.getKeyStroke(KeyEvent.VK_NUMPAD8,   0, false );
+   private static final KeyStroke NUMPAD_2               = KeyStroke.getKeyStroke(KeyEvent.VK_NUMPAD2,   0, false );
+   private static final KeyStroke NUMPAD_4               = KeyStroke.getKeyStroke(KeyEvent.VK_NUMPAD4,   0, false );
+   private static final KeyStroke NUMPAD_6               = KeyStroke.getKeyStroke(KeyEvent.VK_NUMPAD6,   0, false );
+   private static final KeyStroke NUMPAD_7               = KeyStroke.getKeyStroke(KeyEvent.VK_NUMPAD7,   0, false );
+   private static final KeyStroke NUMPAD_1               = KeyStroke.getKeyStroke(KeyEvent.VK_NUMPAD1,   0, false );
+   private static final KeyStroke NUMPAD_3               = KeyStroke.getKeyStroke(KeyEvent.VK_NUMPAD3,   0, false );
+   private static final KeyStroke NUMPAD_9               = KeyStroke.getKeyStroke(KeyEvent.VK_NUMPAD9,   0, false );
+   private static final KeyStroke NUMPAD_5_PRESS         = KeyStroke.getKeyStroke(KeyEvent.VK_NUMPAD5,   0, false );
+   private static final KeyStroke NUMPAD_5_RELEASE       = KeyStroke.getKeyStroke(KeyEvent.VK_NUMPAD5,   0, true  );
+
+   private static final KeyStroke UP                     = KeyStroke.getKeyStroke(KeyEvent.VK_UP,        0, false );
+   private static final KeyStroke DOWN                   = KeyStroke.getKeyStroke(KeyEvent.VK_DOWN,      0, false );
+   private static final KeyStroke LEFT                   = KeyStroke.getKeyStroke(KeyEvent.VK_LEFT,      0, false );
+   private static final KeyStroke RIGHT                  = KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT,     0, false );
+   private static final KeyStroke SPACE_PRESS            = KeyStroke.getKeyStroke(KeyEvent.VK_SPACE,     0, false );
+   private static final KeyStroke SPACE_RELEASE          = KeyStroke.getKeyStroke(KeyEvent.VK_SPACE,     0, true  );
+
+   private static final KeyStroke W                      = KeyStroke.getKeyStroke(KeyEvent.VK_W,         0, false );
+   private static final KeyStroke S                      = KeyStroke.getKeyStroke(KeyEvent.VK_S,         0, false );
+   private static final KeyStroke A                      = KeyStroke.getKeyStroke(KeyEvent.VK_A,         0, false );
+   private static final KeyStroke D                      = KeyStroke.getKeyStroke(KeyEvent.VK_D,         0, false );
 
    private static final Function<String, Border> TITLED_BORDER =
       title ->
@@ -77,6 +105,8 @@ public class GUI
 
    private static final int MIN_PEN_SIZE = 1;
    private static final int MAX_PEN_SIZE = 10;
+   private static final int MIN_SCREEN_TO_IMAGE_PIXEL_RATIO = 5;
+   private static final int MAX_SCREEN_TO_IMAGE_PIXEL_RATIO = 30;
    private static final int DEFAULT_IMAGE_PIXEL_ROWS = 26;
    private static final int DEFAULT_IMAGE_PIXEL_COLUMNS = 24;
 
@@ -538,15 +568,25 @@ public class GUI
                   final InputMap inputMap = drawingPanel.getInputMap(JComponent.WHEN_FOCUSED);
                   final ActionMap actionMap = drawingPanel.getActionMap();
                
-                  final BiConsumer<KeyStroke, Action> keyboardControls =
-                     (keyStroke, action) ->
+                  final BiConsumer<List<KeyStroke>, Action> keyboardControls =
+                     (keyStrokes, action) ->
                      {
                      
-                        Objects.requireNonNull(keyStroke);
+                        Objects.requireNonNull(keyStrokes);
                         Objects.requireNonNull(action);
                      
-                        inputMap.put(keyStroke, keyStroke);
-                        actionMap.put(keyStroke, action);
+                        keyStrokes
+                           .forEach
+                           (
+                              keyStroke ->
+                              {
+                              
+                                 inputMap.put(keyStroke, keyStroke);
+                                 actionMap.put(keyStroke, action);
+                              
+                              }
+                           )
+                           ;
                      
                      }
                      ;
@@ -564,7 +604,7 @@ public class GUI
                               {
                               
                                  gui.coloring = coloring;
-                                 
+                              
                                  performClick.accept(gui.mouseCurrentLocation);
                               
                               }
@@ -573,7 +613,7 @@ public class GUI
                            ;
                      
                      }
-                        ;
+                     ;
                
                   final Function<Consumer<Point>, Action> movementAction =
                      pointModifier ->
@@ -610,12 +650,29 @@ public class GUI
                      }
                      ;
                
-                  keyboardControls.accept(UP,            movementAction.apply(p -> p.translate( 0, -jumpDistance)));
-                  keyboardControls.accept(DOWN,          movementAction.apply(p -> p.translate( 0, +jumpDistance)));
-                  keyboardControls.accept(LEFT,          movementAction.apply(p -> p.translate(-jumpDistance,  0)));
-                  keyboardControls.accept(RIGHT,         movementAction.apply(p -> p.translate(+jumpDistance,  0)));
-                  keyboardControls.accept(SPACE_PRESS,   colorAction.apply(true));
-                  keyboardControls.accept(SPACE_RELEASE, colorAction.apply(false));
+                  final List<KeyStroke> pressUp          = List.of(NUMPAD_UP,             UP,            NUMPAD_8,         W  );
+                  final List<KeyStroke> pressUpLeft      = List.of(HOME,                                 NUMPAD_7             );
+                  final List<KeyStroke> pressLeft        = List.of(NUMPAD_LEFT,           LEFT,          NUMPAD_4,         A  );
+                  final List<KeyStroke> pressDownLeft    = List.of(END,                                  NUMPAD_1             );
+                  final List<KeyStroke> pressDown        = List.of(NUMPAD_DOWN,           DOWN,          NUMPAD_2,         S  );
+                  final List<KeyStroke> pressDownRight   = List.of(PAGE_DOWN,                            NUMPAD_3             );
+                  final List<KeyStroke> pressRight       = List.of(NUMPAD_RIGHT,          RIGHT,         NUMPAD_6,         D  );
+                  final List<KeyStroke> pressUpRight     = List.of(PAGE_UP,                              NUMPAD_9             );
+                  final List<KeyStroke> pressPen         = List.of(NUMPAD_CLEAR_PRESS,    SPACE_PRESS,   NUMPAD_5_PRESS       );
+                  final List<KeyStroke> releasePen       = List.of(NUMPAD_CLEAR_RELEASE,  SPACE_RELEASE, NUMPAD_5_RELEASE     );
+               
+                  final int jumpSize = this.screenToImagePixelRatio;
+               
+                  keyboardControls.accept(pressUp,          movementAction.apply(p -> p.translate( 0, -jumpSize)));
+                  keyboardControls.accept(pressDown,        movementAction.apply(p -> p.translate( 0, +jumpSize)));
+                  keyboardControls.accept(pressLeft,        movementAction.apply(p -> p.translate(-jumpSize,  0)));
+                  keyboardControls.accept(pressRight,       movementAction.apply(p -> p.translate(+jumpSize,  0)));
+                  keyboardControls.accept(pressUpLeft,      movementAction.apply(p -> p.translate(-jumpSize, -jumpSize)));
+                  keyboardControls.accept(pressDownLeft,    movementAction.apply(p -> p.translate(-jumpSize, +jumpSize)));
+                  keyboardControls.accept(pressUpRight,     movementAction.apply(p -> p.translate(+jumpSize, -jumpSize)));
+                  keyboardControls.accept(pressDownRight,   movementAction.apply(p -> p.translate(+jumpSize, +jumpSize)));
+                  keyboardControls.accept(pressPen,   colorAction.apply(true));
+                  keyboardControls.accept(releasePen, colorAction.apply(false));
                
                }
             
@@ -659,7 +716,20 @@ public class GUI
          drawingSettingsPanel.setLayout(new BoxLayout(drawingSettingsPanel, BoxLayout.LINE_AXIS));
       
          final JComboBox<Integer> screenToImagePixelRatioDropDownMenu =
-            new JComboBox<>(IntStream.rangeClosed(10, 30).boxed().toArray(Integer[]::new));
+            new JComboBox<>
+            (
+               IntStream
+                  .rangeClosed
+                  (
+                     MIN_SCREEN_TO_IMAGE_PIXEL_RATIO, 
+                     MAX_SCREEN_TO_IMAGE_PIXEL_RATIO
+                  )
+                  .boxed()
+                  .toArray(Integer[]::new)
+            )
+            ;
+         
+         screenToImagePixelRatioDropDownMenu.setSelectedItem(this.screenToImagePixelRatio);
       
          screenToImagePixelRatioDropDownMenu
             .addActionListener
