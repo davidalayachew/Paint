@@ -53,8 +53,27 @@ public class GUI
    private enum DrawingMode
    {
    
+      KEYBOARD,
+      MOUSE,
+      ;
+   
+   }
+
+   private enum MouseDrawingMode
+   {
+   
       COLORING,
       ERASING,
+      ;
+   
+   }
+
+   private enum KeyDrawingMode
+   {
+   
+      COLORING,
+      ERASING,
+      NONE,
       ;
    
    }
@@ -133,11 +152,10 @@ public class GUI
    private Color transparencyColor = Color.WHITE;
    private Color cursorColor = Color.BLACK;
    private Color gridLinesColor = Color.GRAY;
-   private Point mouseCurrentLocation = new Point(0, 0);
-   private boolean coloring = false;
-   private boolean erasing = false;
+   private Point cursorCurrentLocation = new Point(0, 0);
+   private MouseDrawingMode mouseDrawingMode = MouseDrawingMode.COLORING;
+   private KeyDrawingMode keyDrawingMode = KeyDrawingMode.NONE;
    private boolean hasGridLines = true;
-   private boolean eraserMode = false;
    private int numImagePixelRows = DEFAULT_IMAGE_PIXEL_ROWS;
    private int numImagePixelColumns = DEFAULT_IMAGE_PIXEL_COLUMNS;
    private int penSize = 1;
@@ -192,7 +210,7 @@ public class GUI
       final int maxColumns = this.numImagePixelColumns;
    
       mainPanel.add(this.createTopPanel(),                                 BorderLayout.NORTH);
-      mainPanel.add(this.createCenterPanel(this.mouseCurrentLocation, this.screenToImagePixelRatio),                              BorderLayout.CENTER);
+      mainPanel.add(this.createCenterPanel(this.cursorCurrentLocation, this.screenToImagePixelRatio),                              BorderLayout.CENTER);
       mainPanel.add(this.createBottomPanel(pixels, maxRows, maxColumns),   BorderLayout.SOUTH);
    
       return mainPanel;
@@ -213,7 +231,7 @@ public class GUI
    
    }
 
-   private JPanel createCenterPanel(final Point mouseCurrentLocation, final int jumpDistance)
+   private JPanel createCenterPanel(final Point cursorCurrentLocation, final int jumpDistance)
    {
    
       final GUI gui = this; //useful when trying to differentiate between different this'.
@@ -257,30 +275,6 @@ public class GUI
             
             }
             ;
-      
-         UPDATE_DRAWING_PANEL_BORDER_TEXT =
-            () ->
-               drawingPanel
-                  .setBorder
-                  (
-                     BorderFactory
-                        .createCompoundBorder
-                        (
-                           TITLED_BORDER
-                              .apply
-                              (
-                                 "Drawing Area -- "
-                                 + this.numImagePixelRows
-                                 + " rows and "
-                                 + this.numImagePixelColumns
-                                 + " columns"
-                              ),
-                           BorderFactory.createLineBorder(Color.BLACK, 1)
-                        )
-                  )
-                  ;
-      
-         UPDATE_DRAWING_PANEL_BORDER_TEXT.run();
       
          UPDATE_DRAWING_PANEL_ZOOM_LEVEL =
             () ->
@@ -350,12 +344,12 @@ public class GUI
                            DRAW_CURSOR:
                            {
                            
+                              final int screenPixelCursorSize = gui.screenToImagePixelRatio * gui.penSize;
+                           
                               IntStream
                                  .range(0, gui.numImagePixelRows * gui.numImagePixelColumns)
                                  .forEach
                                  (
-                                 
-                                 
                                     eachIndex ->
                                     {
                                     
@@ -365,18 +359,36 @@ public class GUI
                                        final int screenPixelX = imagePixelX * gui.screenToImagePixelRatio;
                                        final int screenPixelY = imagePixelY * gui.screenToImagePixelRatio;
                                     
-                                       final int screenPixelCursorSize = gui.screenToImagePixelRatio * gui.penSize;
-                                    
-                                       g.setColor(gui.cursorColor);
-                                    
-                                       if (new Point(screenPixelX, screenPixelY).equals(gui.mouseCurrentLocation))
+                                       if (new Point(screenPixelX, screenPixelY).equals(gui.cursorCurrentLocation))
                                        {
+                                       
+                                          g
+                                             .setColor
+                                             (
+                                                switch (gui.keyDrawingMode)
+                                                {
+                                                
+                                                   case  COLORING -> gui.cursorColor;
+                                                   case  ERASING  -> gui.transparencyColor;
+                                                   case  NONE     ->
+                                                         switch (gui.mouseDrawingMode)
+                                                         {
+                                                         
+                                                            case  COLORING -> gui.cursorColor;
+                                                            case  ERASING  -> gui.transparencyColor;
+                                                         
+                                                         }
+                                                         ;
+                                                
+                                                }
+                                             )
+                                             ;
                                        
                                           g
                                              .fillRect
                                              (
-                                                gui.mouseCurrentLocation.x,
-                                                gui.mouseCurrentLocation.y,
+                                                gui.cursorCurrentLocation.x,
+                                                gui.cursorCurrentLocation.y,
                                                 screenPixelCursorSize,
                                                 screenPixelCursorSize
                                              )
@@ -435,8 +447,8 @@ public class GUI
                   }
                   ;
             
-               final Consumer<Point> performClick =
-                  maybeNewPoint ->
+               final BiConsumer<Point, DrawingMode> performClick =
+                  (maybeNewPoint, drawingMode) ->
                   {
                   
                      if
@@ -455,7 +467,7 @@ public class GUI
                      
                      }
                   
-                     gui.mouseCurrentLocation.setLocation(maybeNewPoint);
+                     gui.cursorCurrentLocation.setLocation(maybeNewPoint);
                   
                      final int x = (maybeNewPoint.x - (maybeNewPoint.x % gui.screenToImagePixelRatio)) / gui.screenToImagePixelRatio;
                      final int y = (maybeNewPoint.y - (maybeNewPoint.y % gui.screenToImagePixelRatio)) / gui.screenToImagePixelRatio;
@@ -466,9 +478,30 @@ public class GUI
                      final int startColumn   = index % gui.numImagePixelColumns;
                   
                      final Color colorToWrite =
-                        gui.coloring ? gui.cursorColor
-                        : gui.erasing ? null
-                        : gui.imagePixels.get(index)
+                        switch (drawingMode)
+                        {
+                        
+                           case  MOUSE    ->
+                                 switch (gui.mouseDrawingMode)
+                                 {
+                                 
+                                    case COLORING  -> gui.cursorColor;
+                                    case ERASING   -> null;
+                                 
+                                 }
+                                 ;
+                           case  KEYBOARD ->
+                                 switch (gui.keyDrawingMode)
+                                 {
+                                 
+                                    case  COLORING -> gui.cursorColor;
+                                    case  ERASING  -> null;
+                                    case  NONE     -> throw new IllegalArgumentException();
+                                 
+                                 }
+                              ;
+                        
+                        }
                         ;
                   
                      for
@@ -525,10 +558,10 @@ public class GUI
                   
                      maybeNewPoint.setLocation(x, y);
                   
-                     if (!gui.mouseCurrentLocation.equals(maybeNewPoint))
+                     if (!gui.cursorCurrentLocation.equals(maybeNewPoint))
                      {
                      
-                        gui.mouseCurrentLocation.setLocation(maybeNewPoint);
+                        gui.cursorCurrentLocation.setLocation(maybeNewPoint);
                      
                         REPAINT_DRAWING_PANEL.run();
                      
@@ -547,41 +580,12 @@ public class GUI
                         public void mousePressed(final MouseEvent mouseEvent)
                         {
                         
-                           if (!gui.eraserMode)
+                           if (SwingUtilities.isLeftMouseButton(mouseEvent))
                            {
                            
-                              gui.coloring = true;
+                              performClick.accept(mouseEvent.getPoint(), DrawingMode.MOUSE);
                            
-                           }
-                           
-                           else
-                           {
-                           
-                              gui.erasing = true;
-                           
-                           }
-                        
-                           performClick.accept(mouseEvent.getPoint());
-                        
-                           thingToFocus.requestFocus();
-                        
-                        }
-                     
-                        @Override
-                        public void mouseReleased(final MouseEvent mouseEvent)
-                        {
-                        
-                           if (!gui.eraserMode)
-                           {
-                           
-                              gui.coloring = false;
-                           
-                           }
-                           
-                           else
-                           {
-                           
-                              gui.erasing = false;
+                              thingToFocus.requestFocus();
                            
                            }
                         
@@ -601,21 +605,7 @@ public class GUI
                         public void mouseDragged(final MouseEvent mouseEvent)
                         {
                         
-                           if (!gui.eraserMode)
-                           {
-                           
-                              gui.coloring = true;
-                           
-                           }
-                           
-                           else
-                           {
-                           
-                              gui.erasing = true;
-                           
-                           }
-                        
-                           performClick.accept(mouseEvent.getPoint());
+                           performClick.accept(mouseEvent.getPoint(), DrawingMode.MOUSE);
                         
                         }
                      
@@ -662,6 +652,29 @@ public class GUI
                      }
                      ;
                
+                  final Consumer<KeyDrawingMode> press =
+                     keyDrawingMode ->
+                     {
+                     
+                        gui.keyDrawingMode = keyDrawingMode;
+                     
+                        switch (keyDrawingMode)
+                        {
+                        
+                           case  NONE        -> REPAINT_DRAWING_PANEL.run();
+                           case  COLORING,
+                                 ERASING     ->
+                           {
+                           
+                              performClick.accept(gui.cursorCurrentLocation, DrawingMode.KEYBOARD);
+                           
+                           }
+                        
+                        }
+                     
+                     }
+                     ;
+               
                   final Function<Boolean, Action> colorAction =
                      coloring ->
                      {
@@ -674,9 +687,7 @@ public class GUI
                               public void actionPerformed(final ActionEvent actionEvent)
                               {
                               
-                                 gui.coloring = coloring;
-                              
-                                 performClick.accept(gui.mouseCurrentLocation);
+                                 press.accept(coloring ? KeyDrawingMode.COLORING : KeyDrawingMode.NONE);
                               
                               }
                            
@@ -698,9 +709,7 @@ public class GUI
                               public void actionPerformed(final ActionEvent actionEvent)
                               {
                               
-                                 gui.erasing = erasing;
-                              
-                                 performClick.accept(gui.mouseCurrentLocation);
+                                 press.accept(erasing ? KeyDrawingMode.ERASING : KeyDrawingMode.NONE);
                               
                               }
                            
@@ -722,16 +731,19 @@ public class GUI
                               public void actionPerformed(final ActionEvent actionEvent)
                               {
                               
-                                 final Point somePoint = new Point(mouseCurrentLocation.x, mouseCurrentLocation.y);
+                                 final Point somePoint = new Point(cursorCurrentLocation.x, cursorCurrentLocation.y);
                               
                                  pointModifier.accept(somePoint);
                               
                                  performMove.accept(somePoint);
                               
-                                 if (gui.coloring || gui.erasing)
+                                 switch (gui.keyDrawingMode)
                                  {
                                  
-                                    performClick.accept(somePoint);
+                                    case  NONE        -> {}
+                                    case  COLORING,
+                                          ERASING     -> performClick.accept(somePoint, DrawingMode.KEYBOARD);
+                                 
                                  
                                  }
                               
@@ -814,43 +826,50 @@ public class GUI
          drawingSettingsPanel = new JPanel();
          drawingSettingsPanel.setLayout(new BoxLayout(drawingSettingsPanel, BoxLayout.LINE_AXIS));
       
-         final JComboBox<Integer> screenToImagePixelRatioDropDownMenu =
-            new JComboBox<>
-            (
-               IntStream
-                  .rangeClosed
-                  (
-                     MIN_SCREEN_TO_IMAGE_PIXEL_RATIO,
-                     MAX_SCREEN_TO_IMAGE_PIXEL_RATIO
-                  )
-                  .boxed()
-                  .toArray(Integer[]::new)
-            )
-            ;
-      
-         screenToImagePixelRatioDropDownMenu.setSelectedItem(this.screenToImagePixelRatio);
-      
-         screenToImagePixelRatioDropDownMenu
-            .addActionListener
-            (
-               event ->
-               {
-               
-                  this.screenToImagePixelRatio =
-                     screenToImagePixelRatioDropDownMenu
-                        .getItemAt
-                        (
-                           screenToImagePixelRatioDropDownMenu.getSelectedIndex()
-                        )
-                        ;
-               
-                  this.mouseCurrentLocation.setLocation(new Point(0, 0));
-               
-                  UPDATE_DRAWING_PANEL_ZOOM_LEVEL.run();
-               
-               }
-            );
-      
+         final JComboBox<Integer> screenToImagePixelRatioDropDownMenu;
+         
+         SCREEN_TO_IMAGE_PIXEL_RATIO_DROP_DOWN_MENU:
+         {
+         
+            screenToImagePixelRatioDropDownMenu =
+               new JComboBox<>
+               (
+                  IntStream
+                     .rangeClosed
+                     (
+                        MIN_SCREEN_TO_IMAGE_PIXEL_RATIO,
+                        MAX_SCREEN_TO_IMAGE_PIXEL_RATIO
+                     )
+                     .boxed()
+                     .toArray(Integer[]::new)
+               )
+               ;
+         
+            screenToImagePixelRatioDropDownMenu.setSelectedItem(this.screenToImagePixelRatio);
+         
+            screenToImagePixelRatioDropDownMenu
+               .addActionListener
+               (
+                  event ->
+                  {
+                  
+                     this.screenToImagePixelRatio =
+                        screenToImagePixelRatioDropDownMenu
+                           .getItemAt
+                           (
+                              screenToImagePixelRatioDropDownMenu.getSelectedIndex()
+                           )
+                           ;
+                  
+                     this.cursorCurrentLocation.setLocation(new Point(0, 0));
+                  
+                     UPDATE_DRAWING_PANEL_ZOOM_LEVEL.run();
+                  
+                  }
+               );
+         
+         }
+         
          final JButton transparencyColorChooser;
       
          TRANSPARENCY_COLOR_CHOOSER:
@@ -961,6 +980,56 @@ public class GUI
          
          }
       
+         final JComboBox<MouseDrawingMode> mouseDrawingModeDropDownMenu;
+      
+         MOUSE_DRAWING_MODE_DROP_DOWN_MENU:
+         {
+         
+            screenToImagePixelRatioDropDownMenu
+               .addActionListener
+               (
+                  event ->
+                  {
+                  
+                     this.screenToImagePixelRatio =
+                        screenToImagePixelRatioDropDownMenu
+                           .getItemAt
+                           (
+                              screenToImagePixelRatioDropDownMenu.getSelectedIndex()
+                           )
+                           ;
+                  
+                     this.cursorCurrentLocation.setLocation(new Point(0, 0));
+                  
+                     UPDATE_DRAWING_PANEL_ZOOM_LEVEL.run();
+                  
+                  }
+               );
+         
+            mouseDrawingModeDropDownMenu = new JComboBox<>(MouseDrawingMode.values());
+            mouseDrawingModeDropDownMenu.setSelectedItem(gui.mouseDrawingMode);
+            mouseDrawingModeDropDownMenu
+               .addActionListener
+               (
+                  event ->
+                  {
+                  
+                     this.mouseDrawingMode =
+                        mouseDrawingModeDropDownMenu
+                           .getItemAt
+                           (
+                              mouseDrawingModeDropDownMenu.getSelectedIndex()
+                           )
+                           ;
+                  
+                     REPAINT_DRAWING_PANEL.run();
+                  
+                  }
+               )
+               ;
+         
+         }
+      
          drawingSettingsPanel.add(Box.createHorizontalGlue());
          drawingSettingsPanel.add(screenToImagePixelRatioDropDownMenu);
          drawingSettingsPanel.add(new JLabel("SCREEN pixels = 1 IMAGE pixel"));
@@ -970,12 +1039,52 @@ public class GUI
          drawingSettingsPanel.add(cursorColorChooser);
          drawingSettingsPanel.add(Box.createHorizontalStrut(10));
          drawingSettingsPanel.add(hasGridLinesCheckBox);
+         drawingSettingsPanel.add(Box.createHorizontalStrut(10));
+         drawingSettingsPanel.add(mouseDrawingModeDropDownMenu);
+         drawingSettingsPanel.add(new JLabel("Mouse Drawing Mode"));
          drawingSettingsPanel.add(Box.createHorizontalGlue());
       
       }
    
+      final JPanel centeredDrawingPanel;
+   
+      CREATE_CENTERED_DRAWING_PANEL:
+      {
+      
+         centeredDrawingPanel = new JPanel();
+         centeredDrawingPanel.setLayout(new BoxLayout(centeredDrawingPanel, BoxLayout.PAGE_AXIS));
+         centeredDrawingPanel.add(Box.createVerticalGlue());
+         centeredDrawingPanel.add(drawingPanel);
+         centeredDrawingPanel.add(Box.createVerticalGlue());
+      
+         UPDATE_DRAWING_PANEL_BORDER_TEXT =
+            () ->
+               centeredDrawingPanel
+                  .setBorder
+                  (
+                     BorderFactory
+                        .createCompoundBorder
+                        (
+                           TITLED_BORDER
+                              .apply
+                              (
+                                 "Drawing Area -- "
+                                 + this.numImagePixelRows
+                                 + " rows and "
+                                 + this.numImagePixelColumns
+                                 + " columns"
+                              ),
+                           BorderFactory.createLineBorder(Color.BLACK, 1)
+                        )
+                  )
+                  ;
+      
+         UPDATE_DRAWING_PANEL_BORDER_TEXT.run();
+      
+      }
+   
       mainPanel.add(drawingSettingsPanel, BorderLayout.NORTH);
-      mainPanel.add(new JScrollPane(drawingPanel), BorderLayout.CENTER);
+      mainPanel.add(new JScrollPane(centeredDrawingPanel), BorderLayout.CENTER);
    
       return mainPanel;
    
@@ -1013,7 +1122,7 @@ public class GUI
                   penSizeDropDownMenu
                      .getItemAt(penSizeDropDownMenu.getSelectedIndex());
             
-               this.mouseCurrentLocation.setLocation(new Point(0, 0));
+               this.cursorCurrentLocation.setLocation(new Point(0, 0));
             
                this.frame.repaint();
             
