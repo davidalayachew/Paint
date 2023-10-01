@@ -50,6 +50,15 @@ public class GUI
    
    }
 
+   private enum DrawingMode
+   {
+   
+      COLORING,
+      ERASING,
+      ;
+   
+   }
+
    private static final ExecutorService THREADER =
       Executors
          .newWorkStealingPool()
@@ -57,39 +66,45 @@ public class GUI
 
    private static final Dimension CELL_DIMENSIONS        = new Dimension(10, 10);
 
-   private static final KeyStroke NUMPAD_UP              = KeyStroke.getKeyStroke(KeyEvent.VK_KP_UP,     0, false );
-   private static final KeyStroke NUMPAD_DOWN            = KeyStroke.getKeyStroke(KeyEvent.VK_KP_DOWN,   0, false );
-   private static final KeyStroke NUMPAD_LEFT            = KeyStroke.getKeyStroke(KeyEvent.VK_KP_LEFT,   0, false );
-   private static final KeyStroke NUMPAD_RIGHT           = KeyStroke.getKeyStroke(KeyEvent.VK_KP_RIGHT,  0, false );
-   private static final KeyStroke HOME                   = KeyStroke.getKeyStroke(KeyEvent.VK_HOME,      0, false );
-   private static final KeyStroke END                    = KeyStroke.getKeyStroke(KeyEvent.VK_END,       0, false );
-   private static final KeyStroke PAGE_DOWN              = KeyStroke.getKeyStroke(KeyEvent.VK_PAGE_DOWN, 0, false );
-   private static final KeyStroke PAGE_UP                = KeyStroke.getKeyStroke(KeyEvent.VK_PAGE_UP,   0, false );
-   private static final KeyStroke NUMPAD_CLEAR_PRESS     = KeyStroke.getKeyStroke(KeyEvent.VK_CLEAR,     0, false );
-   private static final KeyStroke NUMPAD_CLEAR_RELEASE   = KeyStroke.getKeyStroke(KeyEvent.VK_CLEAR,     0, true  );
+   private static final KeyStroke NUMPAD_UP              = KeyStroke.getKeyStroke(KeyEvent.VK_KP_UP,        0, false );
+   private static final KeyStroke NUMPAD_DOWN            = KeyStroke.getKeyStroke(KeyEvent.VK_KP_DOWN,      0, false );
+   private static final KeyStroke NUMPAD_LEFT            = KeyStroke.getKeyStroke(KeyEvent.VK_KP_LEFT,      0, false );
+   private static final KeyStroke NUMPAD_RIGHT           = KeyStroke.getKeyStroke(KeyEvent.VK_KP_RIGHT,     0, false );
+   private static final KeyStroke HOME                   = KeyStroke.getKeyStroke(KeyEvent.VK_HOME,         0, false );
+   private static final KeyStroke END                    = KeyStroke.getKeyStroke(KeyEvent.VK_END,          0, false );
+   private static final KeyStroke PAGE_DOWN              = KeyStroke.getKeyStroke(KeyEvent.VK_PAGE_DOWN,    0, false );
+   private static final KeyStroke PAGE_UP                = KeyStroke.getKeyStroke(KeyEvent.VK_PAGE_UP,      0, false );
+   private static final KeyStroke NUMPAD_CLEAR_PRESS     = KeyStroke.getKeyStroke(KeyEvent.VK_CLEAR,        0, false );
+   private static final KeyStroke NUMPAD_CLEAR_RELEASE   = KeyStroke.getKeyStroke(KeyEvent.VK_CLEAR,        0, true  );
+   private static final KeyStroke INSERT_PRESS           = KeyStroke.getKeyStroke(KeyEvent.VK_INSERT,       0, false );
+   private static final KeyStroke INSERT_RELEASE         = KeyStroke.getKeyStroke(KeyEvent.VK_INSERT,       0, true  );
 
-   private static final KeyStroke NUMPAD_8               = KeyStroke.getKeyStroke(KeyEvent.VK_NUMPAD8,   0, false );
-   private static final KeyStroke NUMPAD_2               = KeyStroke.getKeyStroke(KeyEvent.VK_NUMPAD2,   0, false );
-   private static final KeyStroke NUMPAD_4               = KeyStroke.getKeyStroke(KeyEvent.VK_NUMPAD4,   0, false );
-   private static final KeyStroke NUMPAD_6               = KeyStroke.getKeyStroke(KeyEvent.VK_NUMPAD6,   0, false );
-   private static final KeyStroke NUMPAD_7               = KeyStroke.getKeyStroke(KeyEvent.VK_NUMPAD7,   0, false );
-   private static final KeyStroke NUMPAD_1               = KeyStroke.getKeyStroke(KeyEvent.VK_NUMPAD1,   0, false );
-   private static final KeyStroke NUMPAD_3               = KeyStroke.getKeyStroke(KeyEvent.VK_NUMPAD3,   0, false );
-   private static final KeyStroke NUMPAD_9               = KeyStroke.getKeyStroke(KeyEvent.VK_NUMPAD9,   0, false );
-   private static final KeyStroke NUMPAD_5_PRESS         = KeyStroke.getKeyStroke(KeyEvent.VK_NUMPAD5,   0, false );
-   private static final KeyStroke NUMPAD_5_RELEASE       = KeyStroke.getKeyStroke(KeyEvent.VK_NUMPAD5,   0, true  );
+   private static final KeyStroke NUMPAD_8               = KeyStroke.getKeyStroke(KeyEvent.VK_NUMPAD8,      0, false );
+   private static final KeyStroke NUMPAD_2               = KeyStroke.getKeyStroke(KeyEvent.VK_NUMPAD2,      0, false );
+   private static final KeyStroke NUMPAD_4               = KeyStroke.getKeyStroke(KeyEvent.VK_NUMPAD4,      0, false );
+   private static final KeyStroke NUMPAD_6               = KeyStroke.getKeyStroke(KeyEvent.VK_NUMPAD6,      0, false );
+   private static final KeyStroke NUMPAD_7               = KeyStroke.getKeyStroke(KeyEvent.VK_NUMPAD7,      0, false );
+   private static final KeyStroke NUMPAD_1               = KeyStroke.getKeyStroke(KeyEvent.VK_NUMPAD1,      0, false );
+   private static final KeyStroke NUMPAD_3               = KeyStroke.getKeyStroke(KeyEvent.VK_NUMPAD3,      0, false );
+   private static final KeyStroke NUMPAD_9               = KeyStroke.getKeyStroke(KeyEvent.VK_NUMPAD9,      0, false );
+   private static final KeyStroke NUMPAD_5_PRESS         = KeyStroke.getKeyStroke(KeyEvent.VK_NUMPAD5,      0, false );
+   private static final KeyStroke NUMPAD_5_RELEASE       = KeyStroke.getKeyStroke(KeyEvent.VK_NUMPAD5,      0, true  );
+   private static final KeyStroke NUMPAD_0_PRESS         = KeyStroke.getKeyStroke(KeyEvent.VK_NUMPAD0,      0, false );
+   private static final KeyStroke NUMPAD_0_RELEASE       = KeyStroke.getKeyStroke(KeyEvent.VK_NUMPAD0,      0, true  );
 
-   private static final KeyStroke UP                     = KeyStroke.getKeyStroke(KeyEvent.VK_UP,        0, false );
-   private static final KeyStroke DOWN                   = KeyStroke.getKeyStroke(KeyEvent.VK_DOWN,      0, false );
-   private static final KeyStroke LEFT                   = KeyStroke.getKeyStroke(KeyEvent.VK_LEFT,      0, false );
-   private static final KeyStroke RIGHT                  = KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT,     0, false );
-   private static final KeyStroke SPACE_PRESS            = KeyStroke.getKeyStroke(KeyEvent.VK_SPACE,     0, false );
-   private static final KeyStroke SPACE_RELEASE          = KeyStroke.getKeyStroke(KeyEvent.VK_SPACE,     0, true  );
+   private static final KeyStroke UP                     = KeyStroke.getKeyStroke(KeyEvent.VK_UP,           0, false );
+   private static final KeyStroke DOWN                   = KeyStroke.getKeyStroke(KeyEvent.VK_DOWN,         0, false );
+   private static final KeyStroke LEFT                   = KeyStroke.getKeyStroke(KeyEvent.VK_LEFT,         0, false );
+   private static final KeyStroke RIGHT                  = KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT,        0, false );
+   private static final KeyStroke SPACE_PRESS            = KeyStroke.getKeyStroke(KeyEvent.VK_SPACE,        0, false );
+   private static final KeyStroke SPACE_RELEASE          = KeyStroke.getKeyStroke(KeyEvent.VK_SPACE,        0, true  );
+   private static final KeyStroke BACKSPACE_PRESS        = KeyStroke.getKeyStroke(KeyEvent.VK_BACK_SPACE,   0, false );
+   private static final KeyStroke BACKSPACE_RELEASE      = KeyStroke.getKeyStroke(KeyEvent.VK_BACK_SPACE,   0, true  );
 
-   private static final KeyStroke W                      = KeyStroke.getKeyStroke(KeyEvent.VK_W,         0, false );
-   private static final KeyStroke S                      = KeyStroke.getKeyStroke(KeyEvent.VK_S,         0, false );
-   private static final KeyStroke A                      = KeyStroke.getKeyStroke(KeyEvent.VK_A,         0, false );
-   private static final KeyStroke D                      = KeyStroke.getKeyStroke(KeyEvent.VK_D,         0, false );
+   private static final KeyStroke W                      = KeyStroke.getKeyStroke(KeyEvent.VK_W,            0, false );
+   private static final KeyStroke S                      = KeyStroke.getKeyStroke(KeyEvent.VK_S,            0, false );
+   private static final KeyStroke A                      = KeyStroke.getKeyStroke(KeyEvent.VK_A,            0, false );
+   private static final KeyStroke D                      = KeyStroke.getKeyStroke(KeyEvent.VK_D,            0, false );
 
    private static final Function<String, Border> TITLED_BORDER =
       title ->
@@ -120,7 +135,9 @@ public class GUI
    private Color gridLinesColor = Color.GRAY;
    private Point mouseCurrentLocation = new Point(0, 0);
    private boolean coloring = false;
+   private boolean erasing = false;
    private boolean hasGridLines = true;
+   private boolean eraserMode = false;
    private int numImagePixelRows = DEFAULT_IMAGE_PIXEL_ROWS;
    private int numImagePixelColumns = DEFAULT_IMAGE_PIXEL_COLUMNS;
    private int penSize = 1;
@@ -448,6 +465,12 @@ public class GUI
                      final int startRow      = index / gui.numImagePixelColumns;
                      final int startColumn   = index % gui.numImagePixelColumns;
                   
+                     final Color colorToWrite =
+                        gui.coloring ? gui.cursorColor
+                        : gui.erasing ? null
+                        : gui.imagePixels.get(index)
+                        ;
+                  
                      for
                      (
                         int row = startRow;
@@ -466,7 +489,7 @@ public class GUI
                         )
                         {
                         
-                           gui.imagePixels.set((row * gui.numImagePixelColumns) + column, gui.cursorColor);
+                           gui.imagePixels.set((row * gui.numImagePixelColumns) + column, colorToWrite);
                         
                         }
                      
@@ -524,9 +547,43 @@ public class GUI
                         public void mousePressed(final MouseEvent mouseEvent)
                         {
                         
+                           if (!gui.eraserMode)
+                           {
+                           
+                              gui.coloring = true;
+                           
+                           }
+                           
+                           else
+                           {
+                           
+                              gui.erasing = true;
+                           
+                           }
+                        
                            performClick.accept(mouseEvent.getPoint());
                         
                            thingToFocus.requestFocus();
+                        
+                        }
+                     
+                        @Override
+                        public void mouseReleased(final MouseEvent mouseEvent)
+                        {
+                        
+                           if (!gui.eraserMode)
+                           {
+                           
+                              gui.coloring = false;
+                           
+                           }
+                           
+                           else
+                           {
+                           
+                              gui.erasing = false;
+                           
+                           }
                         
                         }
                      
@@ -543,6 +600,20 @@ public class GUI
                         @Override
                         public void mouseDragged(final MouseEvent mouseEvent)
                         {
+                        
+                           if (!gui.eraserMode)
+                           {
+                           
+                              gui.coloring = true;
+                           
+                           }
+                           
+                           else
+                           {
+                           
+                              gui.erasing = true;
+                           
+                           }
                         
                            performClick.accept(mouseEvent.getPoint());
                         
@@ -615,6 +686,30 @@ public class GUI
                      }
                      ;
                
+                  final Function<Boolean, Action> eraserAction =
+                     erasing ->
+                     {
+                     
+                        return
+                           new AbstractAction()
+                           {
+                           
+                              @Override
+                              public void actionPerformed(final ActionEvent actionEvent)
+                              {
+                              
+                                 gui.erasing = erasing;
+                              
+                                 performClick.accept(gui.mouseCurrentLocation);
+                              
+                              }
+                           
+                           }
+                           ;
+                     
+                     }
+                     ;
+               
                   final Function<Consumer<Point>, Action> movementAction =
                      pointModifier ->
                      {
@@ -633,7 +728,7 @@ public class GUI
                               
                                  performMove.accept(somePoint);
                               
-                                 if (coloring)
+                                 if (gui.coloring || gui.erasing)
                                  {
                                  
                                     performClick.accept(somePoint);
@@ -650,16 +745,18 @@ public class GUI
                      }
                      ;
                
-                  final List<KeyStroke> pressUp          = List.of(NUMPAD_UP,             UP,            NUMPAD_8,         W  );
-                  final List<KeyStroke> pressUpLeft      = List.of(HOME,                                 NUMPAD_7             );
-                  final List<KeyStroke> pressLeft        = List.of(NUMPAD_LEFT,           LEFT,          NUMPAD_4,         A  );
-                  final List<KeyStroke> pressDownLeft    = List.of(END,                                  NUMPAD_1             );
-                  final List<KeyStroke> pressDown        = List.of(NUMPAD_DOWN,           DOWN,          NUMPAD_2,         S  );
-                  final List<KeyStroke> pressDownRight   = List.of(PAGE_DOWN,                            NUMPAD_3             );
-                  final List<KeyStroke> pressRight       = List.of(NUMPAD_RIGHT,          RIGHT,         NUMPAD_6,         D  );
-                  final List<KeyStroke> pressUpRight     = List.of(PAGE_UP,                              NUMPAD_9             );
-                  final List<KeyStroke> pressPen         = List.of(NUMPAD_CLEAR_PRESS,    SPACE_PRESS,   NUMPAD_5_PRESS       );
-                  final List<KeyStroke> releasePen       = List.of(NUMPAD_CLEAR_RELEASE,  SPACE_RELEASE, NUMPAD_5_RELEASE     );
+                  final List<KeyStroke> pressUp          = List.of(NUMPAD_UP,             UP,                  NUMPAD_8,         W  );
+                  final List<KeyStroke> pressUpLeft      = List.of(HOME,                                       NUMPAD_7             );
+                  final List<KeyStroke> pressLeft        = List.of(NUMPAD_LEFT,           LEFT,                NUMPAD_4,         A  );
+                  final List<KeyStroke> pressDownLeft    = List.of(END,                                        NUMPAD_1             );
+                  final List<KeyStroke> pressDown        = List.of(NUMPAD_DOWN,           DOWN,                NUMPAD_2,         S  );
+                  final List<KeyStroke> pressDownRight   = List.of(PAGE_DOWN,                                  NUMPAD_3             );
+                  final List<KeyStroke> pressRight       = List.of(NUMPAD_RIGHT,          RIGHT,               NUMPAD_6,         D  );
+                  final List<KeyStroke> pressUpRight     = List.of(PAGE_UP,                                    NUMPAD_9             );
+                  final List<KeyStroke> pressPen         = List.of(NUMPAD_CLEAR_PRESS,    SPACE_PRESS,         NUMPAD_5_PRESS       );
+                  final List<KeyStroke> releasePen       = List.of(NUMPAD_CLEAR_RELEASE,  SPACE_RELEASE,       NUMPAD_5_RELEASE     );
+                  final List<KeyStroke> pressEraser      = List.of(INSERT_PRESS,          BACKSPACE_PRESS,     NUMPAD_0_PRESS       );
+                  final List<KeyStroke> releaseEraser    = List.of(INSERT_RELEASE,        BACKSPACE_RELEASE,   NUMPAD_0_RELEASE     );
                
                   final int jumpSize = this.screenToImagePixelRatio;
                
@@ -671,8 +768,10 @@ public class GUI
                   keyboardControls.accept(pressDownLeft,    movementAction.apply(p -> p.translate(-jumpSize, +jumpSize)));
                   keyboardControls.accept(pressUpRight,     movementAction.apply(p -> p.translate(+jumpSize, -jumpSize)));
                   keyboardControls.accept(pressDownRight,   movementAction.apply(p -> p.translate(+jumpSize, +jumpSize)));
-                  keyboardControls.accept(pressPen,   colorAction.apply(true));
-                  keyboardControls.accept(releasePen, colorAction.apply(false));
+                  keyboardControls.accept(pressPen,         colorAction.apply(true));
+                  keyboardControls.accept(releasePen,       colorAction.apply(false));
+                  keyboardControls.accept(pressEraser,      eraserAction.apply(true));
+                  keyboardControls.accept(releaseEraser,    eraserAction.apply(false));
                
                }
             
@@ -721,14 +820,14 @@ public class GUI
                IntStream
                   .rangeClosed
                   (
-                     MIN_SCREEN_TO_IMAGE_PIXEL_RATIO, 
+                     MIN_SCREEN_TO_IMAGE_PIXEL_RATIO,
                      MAX_SCREEN_TO_IMAGE_PIXEL_RATIO
                   )
                   .boxed()
                   .toArray(Integer[]::new)
             )
             ;
-         
+      
          screenToImagePixelRatioDropDownMenu.setSelectedItem(this.screenToImagePixelRatio);
       
          screenToImagePixelRatioDropDownMenu
