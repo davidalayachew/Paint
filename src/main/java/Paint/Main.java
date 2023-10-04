@@ -1,6 +1,12 @@
 
 package Paint;
 
+import java.awt.Color;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
 public class Main
 {
 
@@ -9,7 +15,8 @@ public class Main
    
       System.out.println("Paint");
    
-      javax.swing.SwingUtilities.invokeLater(GUI::new);
+      //javax.swing.SwingUtilities.invokeLater(() -> new GUI(30_000, 30_000));
+      javax.swing.SwingUtilities.invokeLater(() -> new GUI(20, 20));
    
    }
 

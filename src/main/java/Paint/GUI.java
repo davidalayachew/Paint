@@ -3,8 +3,9 @@ package Paint;
 
 import javax.imageio.*;
 import javax.swing.*;
-import javax.swing.colorchooser.*;
 import javax.swing.border.*;
+import javax.swing.colorchooser.*;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -12,6 +13,7 @@ import java.awt.GridLayout;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Point;
+import java.awt.Rectangle;
 import java.awt.event.*;
 import java.awt.image.*;
 import java.io.File;
@@ -21,6 +23,8 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.function.*;
 import java.util.stream.*;
+
+import static Paint.KeyStrokes.*;
 
 public class GUI
 {
@@ -83,48 +87,6 @@ public class GUI
          .newWorkStealingPool()
          ;
 
-   private static final Dimension CELL_DIMENSIONS        = new Dimension(10, 10);
-
-   private static final KeyStroke NUMPAD_UP              = KeyStroke.getKeyStroke(KeyEvent.VK_KP_UP,        0, false );
-   private static final KeyStroke NUMPAD_DOWN            = KeyStroke.getKeyStroke(KeyEvent.VK_KP_DOWN,      0, false );
-   private static final KeyStroke NUMPAD_LEFT            = KeyStroke.getKeyStroke(KeyEvent.VK_KP_LEFT,      0, false );
-   private static final KeyStroke NUMPAD_RIGHT           = KeyStroke.getKeyStroke(KeyEvent.VK_KP_RIGHT,     0, false );
-   private static final KeyStroke HOME                   = KeyStroke.getKeyStroke(KeyEvent.VK_HOME,         0, false );
-   private static final KeyStroke END                    = KeyStroke.getKeyStroke(KeyEvent.VK_END,          0, false );
-   private static final KeyStroke PAGE_DOWN              = KeyStroke.getKeyStroke(KeyEvent.VK_PAGE_DOWN,    0, false );
-   private static final KeyStroke PAGE_UP                = KeyStroke.getKeyStroke(KeyEvent.VK_PAGE_UP,      0, false );
-   private static final KeyStroke NUMPAD_CLEAR_PRESS     = KeyStroke.getKeyStroke(KeyEvent.VK_CLEAR,        0, false );
-   private static final KeyStroke NUMPAD_CLEAR_RELEASE   = KeyStroke.getKeyStroke(KeyEvent.VK_CLEAR,        0, true  );
-   private static final KeyStroke INSERT_PRESS           = KeyStroke.getKeyStroke(KeyEvent.VK_INSERT,       0, false );
-   private static final KeyStroke INSERT_RELEASE         = KeyStroke.getKeyStroke(KeyEvent.VK_INSERT,       0, true  );
-
-   private static final KeyStroke NUMPAD_8               = KeyStroke.getKeyStroke(KeyEvent.VK_NUMPAD8,      0, false );
-   private static final KeyStroke NUMPAD_2               = KeyStroke.getKeyStroke(KeyEvent.VK_NUMPAD2,      0, false );
-   private static final KeyStroke NUMPAD_4               = KeyStroke.getKeyStroke(KeyEvent.VK_NUMPAD4,      0, false );
-   private static final KeyStroke NUMPAD_6               = KeyStroke.getKeyStroke(KeyEvent.VK_NUMPAD6,      0, false );
-   private static final KeyStroke NUMPAD_7               = KeyStroke.getKeyStroke(KeyEvent.VK_NUMPAD7,      0, false );
-   private static final KeyStroke NUMPAD_1               = KeyStroke.getKeyStroke(KeyEvent.VK_NUMPAD1,      0, false );
-   private static final KeyStroke NUMPAD_3               = KeyStroke.getKeyStroke(KeyEvent.VK_NUMPAD3,      0, false );
-   private static final KeyStroke NUMPAD_9               = KeyStroke.getKeyStroke(KeyEvent.VK_NUMPAD9,      0, false );
-   private static final KeyStroke NUMPAD_5_PRESS         = KeyStroke.getKeyStroke(KeyEvent.VK_NUMPAD5,      0, false );
-   private static final KeyStroke NUMPAD_5_RELEASE       = KeyStroke.getKeyStroke(KeyEvent.VK_NUMPAD5,      0, true  );
-   private static final KeyStroke NUMPAD_0_PRESS         = KeyStroke.getKeyStroke(KeyEvent.VK_NUMPAD0,      0, false );
-   private static final KeyStroke NUMPAD_0_RELEASE       = KeyStroke.getKeyStroke(KeyEvent.VK_NUMPAD0,      0, true  );
-
-   private static final KeyStroke UP                     = KeyStroke.getKeyStroke(KeyEvent.VK_UP,           0, false );
-   private static final KeyStroke DOWN                   = KeyStroke.getKeyStroke(KeyEvent.VK_DOWN,         0, false );
-   private static final KeyStroke LEFT                   = KeyStroke.getKeyStroke(KeyEvent.VK_LEFT,         0, false );
-   private static final KeyStroke RIGHT                  = KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT,        0, false );
-   private static final KeyStroke SPACE_PRESS            = KeyStroke.getKeyStroke(KeyEvent.VK_SPACE,        0, false );
-   private static final KeyStroke SPACE_RELEASE          = KeyStroke.getKeyStroke(KeyEvent.VK_SPACE,        0, true  );
-   private static final KeyStroke BACKSPACE_PRESS        = KeyStroke.getKeyStroke(KeyEvent.VK_BACK_SPACE,   0, false );
-   private static final KeyStroke BACKSPACE_RELEASE      = KeyStroke.getKeyStroke(KeyEvent.VK_BACK_SPACE,   0, true  );
-
-   private static final KeyStroke W                      = KeyStroke.getKeyStroke(KeyEvent.VK_W,            0, false );
-   private static final KeyStroke S                      = KeyStroke.getKeyStroke(KeyEvent.VK_S,            0, false );
-   private static final KeyStroke A                      = KeyStroke.getKeyStroke(KeyEvent.VK_A,            0, false );
-   private static final KeyStroke D                      = KeyStroke.getKeyStroke(KeyEvent.VK_D,            0, false );
-
    private static final Function<String, Border> TITLED_BORDER =
       title ->
          BorderFactory
@@ -137,6 +99,7 @@ public class GUI
             )
             ;
 
+   public static final int ARBITRARY_VIEW_BUFFER = 200;
    private static final int MIN_PEN_SIZE = 1;
    private static final int MAX_PEN_SIZE = 10;
    private static final int MIN_SCREEN_TO_IMAGE_PIXEL_RATIO = 5;
@@ -144,10 +107,10 @@ public class GUI
    private static final int DEFAULT_IMAGE_PIXEL_ROWS = 26;
    private static final int DEFAULT_IMAGE_PIXEL_COLUMNS = 24;
 
-   private final List<Color> imagePixels =
-      Arrays
-         .asList(new Color[DEFAULT_IMAGE_PIXEL_ROWS * DEFAULT_IMAGE_PIXEL_COLUMNS]);
+   private final List<Color> imagePixels;
    private final JFrame frame;
+   private final JFileChooser fileChooser = new JFileChooser();
+   private final JScrollPane drawingAreaScrollPane = new JScrollPane();
 
    private Color transparencyColor = Color.WHITE;
    private Color cursorColor = Color.BLACK;
@@ -164,6 +127,13 @@ public class GUI
    public GUI()
    {
    
+      this(DEFAULT_IMAGE_PIXEL_ROWS, DEFAULT_IMAGE_PIXEL_COLUMNS);
+   
+   }
+
+   public GUI(final int numImagePixelRows, final int numImagePixelColumns)
+   {
+   
       try
       {
       
@@ -178,11 +148,27 @@ public class GUI
       
       }
    
+      INITALIZING_METADATA_INSTANCE_FIELDS:
+      {
+      
+         this.numImagePixelRows = numImagePixelRows;
+         this.numImagePixelColumns = numImagePixelColumns;
+      
+         this.imagePixels =
+            Arrays
+               .asList
+               (
+                  new Color[this.numImagePixelRows * this.numImagePixelColumns]
+               )
+               ;
+      
+      }
+   
       this.frame = new JFrame();
    
       this.frame.setTitle("Paint");
       this.frame.setLocationByPlatform(true);
-      this.frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+      this.frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
    
       this.frame.add(this.createMainPanel());
    
@@ -198,13 +184,13 @@ public class GUI
    
       final Color transparentColor = new Color(0, 0, 0, 0);
    
-      final List<Color> pixels =
-         this
-            .imagePixels
-            .stream()
-            .map(each -> Objects.requireNonNullElse(each, transparentColor))
-            .toList()
-            ;
+      final Supplier<Stream<Color>> pixels =
+         () ->
+            this
+               .imagePixels
+               .stream()
+               .map(each -> Objects.requireNonNullElse(each, transparentColor))
+               ;
    
       final int maxRows    = this.numImagePixelRows;
       final int maxColumns = this.numImagePixelColumns;
@@ -249,7 +235,7 @@ public class GUI
       final JPanel drawingPanel;
    
       final Runnable UPDATE_DRAWING_PANEL_BORDER_TEXT;
-      final Runnable UPDATE_DRAWING_PANEL_ZOOM_LEVEL;
+      final Runnable RECREATE_DRAWING_AREA_FRESH;
       final Runnable REPAINT_DRAWING_PANEL;
    
       CREATE_DRAWING_PANEL:
@@ -276,7 +262,7 @@ public class GUI
             }
             ;
       
-         UPDATE_DRAWING_PANEL_ZOOM_LEVEL =
+         RECREATE_DRAWING_AREA_FRESH =
             () ->
             {
             
@@ -304,11 +290,68 @@ public class GUI
                         DRAW_DRAWN_PIXELS:
                         {
                         
-                           DRAW_IMAGE:
+                           final int[] imagePixelsToDrawToScreen;
+                        
+                           //We are only drawing a subsection because we may be working with GIGANTIC images.
+                           //If we attempt to draw the whole image, performance will drop like a rock.
+                           CALCULATE_SUBSECTION_TO_DRAW:
+                           {
+                           
+                              final Rectangle rectangle  = gui.drawingAreaScrollPane.getViewport().getViewRect();
+                           
+                              final int rectangleWidth   = rectangle.width + ARBITRARY_VIEW_BUFFER > drawingArea.width ? drawingArea.width : rectangle.width + ARBITRARY_VIEW_BUFFER;
+                              final int rectangleHeight  = rectangle.height + ARBITRARY_VIEW_BUFFER > drawingArea.height ? drawingArea.height : rectangle.height + ARBITRARY_VIEW_BUFFER;
+                              final int rectangleX       = rectangle.x - (ARBITRARY_VIEW_BUFFER / 2) < 0 ? 0 : rectangle.x - (ARBITRARY_VIEW_BUFFER / 2);
+                              final int rectangleY       = rectangle.y - (ARBITRARY_VIEW_BUFFER / 2) < 0 ? 0 : rectangle.y - (ARBITRARY_VIEW_BUFFER / 2);
+                           
+                              final int subImageWidth    = rectangleWidth  / gui.screenToImagePixelRatio;
+                              final int subImageHeight   = rectangleHeight / gui.screenToImagePixelRatio;
+                              final int subImageX        = rectangleX      / gui.screenToImagePixelRatio;
+                              final int subImageY        = rectangleY      / gui.screenToImagePixelRatio;
+                              
+                              imagePixelsToDrawToScreen = new int[subImageWidth * subImageHeight];
+                           
+                              int mutableCounter = 0;
+                           
+                              rowLoop:
+                              for (int currentRow = subImageY; currentRow < subImageHeight + subImageY; currentRow++)
+                              {
+                              
+                                 if (currentRow >= gui.numImagePixelRows)
+                                 {
+                                 
+                                    continue rowLoop;
+                                 
+                                 }
+                              
+                                 columnLoop:
+                                 for (int currentColumn = subImageX; currentColumn < subImageWidth + subImageX; currentColumn++)
+                                 {
+                                 
+                                    if (currentColumn >= gui.numImagePixelColumns)
+                                    {
+                                    
+                                       continue columnLoop;
+                                    
+                                    }
+                                 
+                                    final int actualIndexValue = (currentRow * gui.numImagePixelColumns) + currentColumn;
+                                 
+                                    imagePixelsToDrawToScreen[mutableCounter++] = actualIndexValue;
+                                 
+                                    //System.out.println(currentRow + "\t" + currentColumn + "\t" + actualIndexValue);
+                                 
+                                 }
+                              
+                              }
+                           
+                           }
+                        
+                           DRAW_SUBSECTION_OF_IMAGE:
                            {
                            
                               IntStream
-                                 .range(0, gui.numImagePixelRows * gui.numImagePixelColumns)
+                                 .of(imagePixelsToDrawToScreen)
                                  .forEach
                                  (
                                     eachIndex ->
@@ -341,13 +384,13 @@ public class GUI
                            
                            }
                         
-                           DRAW_CURSOR:
+                           DRAW_CURSOR_IF_IN_SUBSECTION:
                            {
                            
                               final int screenPixelCursorSize = gui.screenToImagePixelRatio * gui.penSize;
                            
                               IntStream
-                                 .range(0, gui.numImagePixelRows * gui.numImagePixelColumns)
+                                 .of(imagePixelsToDrawToScreen)
                                  .forEach
                                  (
                                     eachIndex ->
@@ -409,7 +452,7 @@ public class GUI
                               {
                               
                                  IntStream
-                                    .range(0, gui.numImagePixelRows * gui.numImagePixelColumns)
+                                    .of(imagePixelsToDrawToScreen)
                                     .forEach
                                     (
                                        eachIndex ->
@@ -814,7 +857,7 @@ public class GUI
             }
             ;
       
-         UPDATE_DRAWING_PANEL_ZOOM_LEVEL.run();
+         RECREATE_DRAWING_AREA_FRESH.run();
       
       }
    
@@ -827,7 +870,7 @@ public class GUI
          drawingSettingsPanel.setLayout(new BoxLayout(drawingSettingsPanel, BoxLayout.LINE_AXIS));
       
          final JComboBox<Integer> screenToImagePixelRatioDropDownMenu;
-         
+      
          SCREEN_TO_IMAGE_PIXEL_RATIO_DROP_DOWN_MENU:
          {
          
@@ -863,13 +906,13 @@ public class GUI
                   
                      this.cursorCurrentLocation.setLocation(new Point(0, 0));
                   
-                     UPDATE_DRAWING_PANEL_ZOOM_LEVEL.run();
+                     RECREATE_DRAWING_AREA_FRESH.run();
                   
                   }
                );
          
          }
-         
+      
          final JButton transparencyColorChooser;
       
          TRANSPARENCY_COLOR_CHOOSER:
@@ -1001,7 +1044,7 @@ public class GUI
                   
                      this.cursorCurrentLocation.setLocation(new Point(0, 0));
                   
-                     UPDATE_DRAWING_PANEL_ZOOM_LEVEL.run();
+                     RECREATE_DRAWING_AREA_FRESH.run();
                   
                   }
                );
@@ -1030,6 +1073,56 @@ public class GUI
          
          }
       
+         final JButton openImageButton;
+      
+         OPEN_IMAGE_BUTTON:
+         {
+         
+            openImageButton = new JButton();
+         
+            openImageButton.setText("Open Image");
+         
+            openImageButton
+               .addActionListener
+               (
+                  event ->
+                  {
+                  
+                     fileChooser.setFileHidingEnabled(false);
+                     fileChooser.setAcceptAllFileFilterUsed(false);
+                     fileChooser.setFileFilter(new FileNameExtensionFilter("PNG & GIF Images", "png", "gif"));
+                  
+                     fileChooser.showOpenDialog(this.frame);
+                  
+                     if (fileChooser.getSelectedFile() instanceof final File newImageFile)
+                     {
+                     
+                        final BufferedImage newImage;
+                     
+                        try
+                        {
+                        
+                           newImage = ImageIO.read(newImageFile);
+                        
+                        }
+                        
+                        catch (final Exception e)
+                        {
+                        
+                           throw new RuntimeException(e);
+                        
+                        }
+                     
+                        new GUI(newImage.getHeight(), newImage.getWidth());
+                     
+                     }
+                  
+                  }
+               )
+               ;
+         
+         }
+      
          drawingSettingsPanel.add(Box.createHorizontalGlue());
          drawingSettingsPanel.add(screenToImagePixelRatioDropDownMenu);
          drawingSettingsPanel.add(new JLabel("SCREEN pixels = 1 IMAGE pixel"));
@@ -1042,16 +1135,16 @@ public class GUI
          drawingSettingsPanel.add(Box.createHorizontalStrut(10));
          drawingSettingsPanel.add(mouseDrawingModeDropDownMenu);
          drawingSettingsPanel.add(new JLabel("Mouse Drawing Mode"));
+         drawingSettingsPanel.add(Box.createHorizontalStrut(10));
+         drawingSettingsPanel.add(openImageButton);
          drawingSettingsPanel.add(Box.createHorizontalGlue());
       
       }
    
-      final JPanel centeredDrawingPanel;
-   
       CREATE_CENTERED_DRAWING_PANEL:
       {
       
-         centeredDrawingPanel = new JPanel();
+         final JPanel centeredDrawingPanel = new JPanel();
          centeredDrawingPanel.setLayout(new BoxLayout(centeredDrawingPanel, BoxLayout.PAGE_AXIS));
          centeredDrawingPanel.add(Box.createVerticalGlue());
          centeredDrawingPanel.add(drawingPanel);
@@ -1059,7 +1152,7 @@ public class GUI
       
          UPDATE_DRAWING_PANEL_BORDER_TEXT =
             () ->
-               centeredDrawingPanel
+               this.drawingAreaScrollPane
                   .setBorder
                   (
                      BorderFactory
@@ -1081,10 +1174,12 @@ public class GUI
       
          UPDATE_DRAWING_PANEL_BORDER_TEXT.run();
       
+         this.drawingAreaScrollPane.setViewportView(centeredDrawingPanel);
+      
       }
    
       mainPanel.add(drawingSettingsPanel, BorderLayout.NORTH);
-      mainPanel.add(new JScrollPane(centeredDrawingPanel), BorderLayout.CENTER);
+      mainPanel.add(this.drawingAreaScrollPane, BorderLayout.CENTER);
    
       return mainPanel;
    
@@ -1170,7 +1265,7 @@ public class GUI
    
    }
 
-   private JPanel createBottomPanel(final List<Color> pixels, final int maxRows, final int maxColumns)
+   private JPanel createBottomPanel(final Supplier<Stream<Color>> pixels, final int maxRows, final int maxColumns)
    {
    
       final JPanel panel = new JPanel();
@@ -1219,7 +1314,7 @@ public class GUI
                         case  PNG   -> true;
                         case  GIF   ->
                            pixels
-                              .stream()
+                              .get()
                               .allMatch(isOpaqueOrTransparent)
                               ;
                      
@@ -1280,6 +1375,24 @@ public class GUI
                         )
                         ;
                   
+                     final int pixelCount;
+                     
+                     final long longCount = pixels.get().count();
+                     
+                     if (longCount > Integer.MAX_VALUE)
+                     {
+                     
+                        throw new IllegalArgumentException
+                           (
+                              "You have too many pixels for this application to use! Use a smaller image. Pixel count = "
+                                 + longCount
+                           )
+                           ;
+                     
+                     }
+                     
+                     pixelCount = (int) longCount;
+                  
                      listOfBadPixels
                         .add
                         (
@@ -1290,8 +1403,8 @@ public class GUI
                                     JList<String>
                                     (
                                        IntStream
-                                          .range(0, pixels.size())
-                                          .mapToObj(eachInt -> Pixel.of(eachInt, pixels.get(eachInt), maxRows, maxColumns))
+                                          .range(0, pixelCount)
+                                          .mapToObj(eachInt -> Pixel.of(eachInt, pixels.get().skip(eachInt-1).findFirst().orElseThrow(), maxRows, maxColumns))
                                           .filter(eachPixel -> !isOpaqueOrTransparent.test(eachPixel.color()))
                                           .map(eachPixel -> eachPixel + " -- alpha = " + eachPixel.color().getAlpha())
                                           .toArray(String[]::new)
@@ -1315,76 +1428,75 @@ public class GUI
                
                }
             
-               // final BufferedImage finalImage =
-                  // new
-                  //    BufferedImage
-                  //    (
-                  //       this.numImagePixelColumns,
-                  //       this.numImagePixelRows,
-                  //       BufferedImage.TYPE_INT_ARGB
-                  //    )
-                  //    ;
-            //
-               // for (int row = 0; row < this.numImagePixelRows; row++)
-               // {
-               //
-                  // for (int column = 0; column < this.numImagePixelColumns; column++)
-                  // {
-                  //
-                     // final int index = (row * this.numImagePixelColumns) + column;
-                  //
-                     // final Color pixel = pixels.get(index);
-                     // System.out.println(pixel);
-                     // System.out.println(pixel.getRGB());
-                     // finalImage.setRGB(column, row, pixel.getRGB());
-                  //
-                  // }
-               //
-               // }
-            //
-               // try
-               // {
-               //
-                  // final String imageTypeString = imageType.name().toLowerCase();
-               //
-                  // ImageIO
-                     // .write
-                     // (
-                     //    finalImage,
-                     //    imageTypeString,
-                     //    new
-                     //       File
-                     //       (
-                     //          LocalDateTime
-                     //             .now()
-                     //             .format
-                     //             (
-                     //                DateTimeFormatter
-                     //                   .ofPattern("yyyyMMdd_HHmmss_SSS")
-                     //             )
-                     //             +
-                     //             "."
-                     //             +
-                     //             imageType
-                     //       )
-                     // )
-                     // ;
-               //
-               // }
-               //
-               // catch (final Exception e)
-               // {
-               //
-                  // throw new RuntimeException(e);
-               //
-               // }
-            //
+               final BufferedImage finalImage =
+                  new
+                     BufferedImage
+                     (
+                        this.numImagePixelColumns,
+                        this.numImagePixelRows,
+                        BufferedImage.TYPE_INT_ARGB
+                     )
+                     ;
+            
+               for (int row = 0; row < this.numImagePixelRows; row++)
+               {
+               
+                  for (int column = 0; column < this.numImagePixelColumns; column++)
+                  {
+                  
+                     final int index = (row * this.numImagePixelColumns) + column;
+                  
+                     final Color pixel = pixels.get().skip(index - 1).findFirst().orElseThrow();
+                  
+                     finalImage.setRGB(column, row, pixel.getRGB());
+                  
+                  }
+               
+               }
+            
+               try
+               {
+               
+                  final String imageTypeString = imageType.name().toLowerCase();
+               
+                  ImageIO
+                     .write
+                     (
+                        finalImage,
+                        imageTypeString,
+                        new
+                           File
+                           (
+                              LocalDateTime
+                                 .now()
+                                 .format
+                                 (
+                                    DateTimeFormatter
+                                       .ofPattern("yyyyMMdd_HHmmss_SSS")
+                                 )
+                                 +
+                                 "."
+                                 +
+                                 imageType
+                           )
+                     )
+                     ;
+               
+               }
+               
+               catch (final Exception e)
+               {
+               
+                  throw new RuntimeException(e);
+               
+               }
+            
             }
          )
          ;
    
-      // panel.add(save);
-      // panel.add(imageTypeDropDownMenu);
+      panel.add(save);
+      panel.add(imageTypeDropDownMenu);
    
       return panel;
    
