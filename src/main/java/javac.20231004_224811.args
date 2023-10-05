@@ -1,0 +1,9 @@
+-d
+..\\..\\..\\classes
+-g
+-Xlint:all,-preview,-serial
+-Xdiags:verbose
+--enable-preview
+--source
+21
+Paint\\GUI.java

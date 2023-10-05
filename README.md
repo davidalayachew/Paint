@@ -17,3 +17,11 @@ SHOULD-HAVE -- Resize Image, Select area, Copy/Cut/Paste (selection), Line/Recta
 WANT-TO-HAVE -- Ruler, Grid, More Shapes, More Brush Types
 
 NICE-TO-HAVE -- Thumbnail, Shape Builder, Brush Builder
+
+---
+
+By the way, some notes.
+
+Keyboard controls are active, with expected functionality (space to draw, backspace to erase, etc). NUMPAD is supported too.
+
+Each computer will vary, but I have this application built to handle images of at least 10k by 10k pixels. My program can technically handle more than that, but that is machine dependent.
