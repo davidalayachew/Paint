@@ -112,7 +112,7 @@ public class GUI
    public static final int ARBITRARY_VIEW_BUFFER = 200;
    private static final int MIN_PEN_SIZE = 1;
    private static final int MAX_PEN_SIZE = 10;
-   private static final int MIN_SCREEN_TO_IMAGE_PIXEL_RATIO = 5;
+   private static final int MIN_SCREEN_TO_IMAGE_PIXEL_RATIO = 1;
    private static final int MAX_SCREEN_TO_IMAGE_PIXEL_RATIO = 30;
    private static final int DEFAULT_IMAGE_PIXEL_ROWS = 26;
    private static final int DEFAULT_IMAGE_PIXEL_COLUMNS = 24;
@@ -207,6 +207,7 @@ public class GUI
    
       this.frame.pack();
       this.frame.setLocationByPlatform(true);
+      this.frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
       this.frame.setVisible(true);
    
    }
@@ -219,8 +220,8 @@ public class GUI
       final int maxRows    = this.numImagePixelRows;
       final int maxColumns = this.numImagePixelColumns;
    
-      mainPanel.add(this.createTopPanel(),                                 BorderLayout.NORTH);
-      mainPanel.add(this.createCenterPanel(this.cursorCurrentLocation, this.screenToImagePixelRatio),                              BorderLayout.CENTER);
+      mainPanel.add(this.createTopPanel(),                                                            BorderLayout.NORTH);
+      mainPanel.add(this.createCenterPanel(this.cursorCurrentLocation, this.screenToImagePixelRatio), BorderLayout.CENTER);
    
       return mainPanel;
    
@@ -361,8 +362,6 @@ public class GUI
                                  
                                     imagePixelsToDrawToScreen[mutableCounter++] = actualIndexValue;
                                  
-                                    //System.out.println(currentRow + "\t" + currentColumn + "\t" + actualIndexValue);
-                                 
                                  }
                               
                               }
@@ -408,6 +407,13 @@ public class GUI
                         
                            DRAW_CURSOR_IF_IN_SUBSECTION:
                            {
+                           
+                              if (gui.cursorCurrentLocation.getLocation().equals(new Point(-1, -1)))
+                              {
+                              
+                                 break DRAW_CURSOR_IF_IN_SUBSECTION;
+                              
+                              }
                            
                               final int screenPixelCursorSize = gui.screenToImagePixelRatio * gui.penSize;
                            
@@ -528,6 +534,7 @@ public class GUI
                      )
                      {
                      
+                        gui.cursorCurrentLocation.setLocation(-1, -1);
                         return;
                      
                      }
@@ -641,6 +648,17 @@ public class GUI
                      new MouseAdapter()
                      {
                      
+                        @Override
+                        public void mouseExited(final MouseEvent mouseEvent)
+                        {
+                        
+                           System.out.println("exited");
+                           gui.cursorCurrentLocation.setLocation(new Point(-1, -1));
+                        
+                           REPAINT_DRAWING_PANEL.run();
+                        
+                        }
+                        
                         @Override
                         public void mousePressed(final MouseEvent mouseEvent)
                         {
@@ -891,40 +909,38 @@ public class GUI
          drawingSettingsPanel = new JPanel();
          drawingSettingsPanel.setLayout(new BoxLayout(drawingSettingsPanel, BoxLayout.LINE_AXIS));
       
-         final JComboBox<Integer> screenToImagePixelRatioDropDownMenu;
+         final JSpinner screenToImagePixelRatioDropDownMenu;
       
          SCREEN_TO_IMAGE_PIXEL_RATIO_DROP_DOWN_MENU:
          {
          
             screenToImagePixelRatioDropDownMenu =
-               new JComboBox<>
+               new JSpinner
                (
-                  IntStream
-                     .rangeClosed
-                     (
-                        MIN_SCREEN_TO_IMAGE_PIXEL_RATIO,
-                        MAX_SCREEN_TO_IMAGE_PIXEL_RATIO
-                     )
-                     .boxed()
-                     .toArray(Integer[]::new)
+                  new SpinnerNumberModel
+                  (
+                     this.screenToImagePixelRatio,
+                     MIN_SCREEN_TO_IMAGE_PIXEL_RATIO,
+                     MAX_SCREEN_TO_IMAGE_PIXEL_RATIO,
+                     1
+                  )
                )
                ;
          
-            screenToImagePixelRatioDropDownMenu.setSelectedItem(this.screenToImagePixelRatio);
-         
             screenToImagePixelRatioDropDownMenu
-               .addActionListener
+               .addChangeListener
                (
                   event ->
                   {
                   
-                     this.screenToImagePixelRatio =
-                        screenToImagePixelRatioDropDownMenu
-                           .getItemAt
-                           (
-                              screenToImagePixelRatioDropDownMenu.getSelectedIndex()
-                           )
-                           ;
+                     if (!(screenToImagePixelRatioDropDownMenu.getValue() instanceof Integer iii))
+                     {
+                     
+                        throw new IllegalStateException();
+                     
+                     }
+                  
+                     this.screenToImagePixelRatio = iii;
                   
                      this.cursorCurrentLocation.setLocation(new Point(0, 0));
                   
@@ -1049,27 +1065,6 @@ public class GUI
       
          MOUSE_DRAWING_MODE_DROP_DOWN_MENU:
          {
-         
-            screenToImagePixelRatioDropDownMenu
-               .addActionListener
-               (
-                  event ->
-                  {
-                  
-                     this.screenToImagePixelRatio =
-                        screenToImagePixelRatioDropDownMenu
-                           .getItemAt
-                           (
-                              screenToImagePixelRatioDropDownMenu.getSelectedIndex()
-                           )
-                           ;
-                  
-                     this.cursorCurrentLocation.setLocation(new Point(0, 0));
-                  
-                     RECREATE_DRAWING_AREA_FRESH.run();
-                  
-                  }
-               );
          
             mouseDrawingModeDropDownMenu = new JComboBox<>(MouseDrawingMode.values());
             mouseDrawingModeDropDownMenu.setSelectedItem(gui.mouseDrawingMode);
@@ -1210,30 +1205,33 @@ public class GUI
    
       panel.setBorder(TITLED_BORDER.apply("Size"));
    
-      final JComboBox<Integer> penSizeDropDownMenu =
-         new
-            JComboBox<>
+      final JSpinner penSizeDropDownMenu =
+         new JSpinner
+         (
+            new SpinnerNumberModel
             (
-               IntStream
-                  .rangeClosed
-                  (
-                     MIN_PEN_SIZE,
-                     MAX_PEN_SIZE
-                  )
-                  .boxed()
-                  .toArray(Integer[]::new)
+               MIN_PEN_SIZE,
+               MIN_PEN_SIZE,
+               MAX_PEN_SIZE,
+               1
             )
-            ;
+         )
+         ;
    
       penSizeDropDownMenu
-         .addActionListener
+         .addChangeListener
          (
             event ->
             {
             
-               this.penSize =
-                  penSizeDropDownMenu
-                     .getItemAt(penSizeDropDownMenu.getSelectedIndex());
+               if (!(penSizeDropDownMenu.getValue() instanceof Integer iii))
+               {
+               
+                  throw new IllegalStateException();
+               
+               }
+            
+               this.penSize = iii;
             
                this.cursorCurrentLocation.setLocation(new Point(0, 0));
             
@@ -1363,7 +1361,12 @@ public class GUI
                TASKS:
                {
                
-                  this.fileChooser.showSaveDialog(loadingScreen);
+                  if (this.fileChooser.showSaveDialog(loadingScreen) != JFileChooser.APPROVE_OPTION)
+                  {
+                  
+                     return;
+                  
+                  }
                
                   final BufferedImage finalImage =
                      new BufferedImage
@@ -1387,8 +1390,6 @@ public class GUI
                            try
                            {
                            
-                              final File outputFile = Objects.requireNonNull(fileChooser.getSelectedFile());
-                           
                               if (!(fileChooser.getFileFilter() instanceof final FileNameExtensionFilter filter))
                               {
                               
@@ -1397,6 +1398,17 @@ public class GUI
                               }
                            
                               final String fileExtension = filter.getExtensions()[0];
+                           
+                              final String rawFileName = Objects.requireNonNull(fileChooser.getSelectedFile()).getAbsolutePath();
+                           
+                              final File outputFile =
+                                 new File
+                                 (
+                                    rawFileName.endsWith("." + fileExtension)
+                                    ? rawFileName
+                                    : rawFileName + "." + fileExtension
+                                 )
+                                 ;
                            
                               final ImageWriter imageWriter = ImageIO.getImageWritersByFormatName(fileExtension).next();
                            
@@ -1686,11 +1698,10 @@ public class GUI
                   System.out.println("trwer423");
                
                   loadingScreen.setSize(300, 200);
-                  loadingScreen.setVisible(true);
-                  
-                  System.out.println("aasdkjn");
                
-                  SwingUtilities.invokeLater(validateImageTask::execute);
+                  validateImageTask.execute();
+               
+                  loadingScreen.setVisible(true);
                
                }
             
