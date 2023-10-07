@@ -12,7 +12,7 @@ SHOWSTOPPER -- PNG, GIF, Pen, Eraser, Zoom Options (Minimal), Pen Size, Color Ch
 
 MUST-HAVE -- Set Dimensions for image, Paint Bucket, Eyedropper tool, Text tool, Rotation, Crop, Flip, Copy/Cut/Paste (whole image), Image metrics, Mouse-hover pixel info (location/color/etc)
 
-SHOULD-HAVE -- Resize Image, Select area, Copy/Cut/Paste (selection), Line/Rectangle/Oval Shape tool, Different Brush types
+SHOULD-HAVE -- Earlier warnings, Resize Image, Select area, Copy/Cut/Paste (selection), Line/Rectangle/Oval Shape tool, Different Brush types
 
 WANT-TO-HAVE -- Ruler, Grid, More Shapes, More Brush Types
 

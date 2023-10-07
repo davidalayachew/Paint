@@ -2,6 +2,7 @@
 package Paint;
 
 import javax.imageio.*;
+import javax.imageio.event.*;
 import javax.swing.*;
 import javax.swing.border.*;
 import javax.swing.colorchooser.*;
@@ -82,6 +83,15 @@ public class GUI
    
    }
 
+   enum ImageType
+   {
+   
+      PNG,
+      GIF,
+      ;
+   
+   }
+
    private static final ExecutorService THREADER =
       Executors
          .newWorkStealingPool()
@@ -109,7 +119,7 @@ public class GUI
 
    private final List<Color> imagePixels;
    private final JFrame frame;
-   private final JFileChooser fileChooser = new JFileChooser();
+   private final JFileChooser fileChooser;
    private final JScrollPane drawingAreaScrollPane = new JScrollPane();
 
    private Color transparencyColor = Color.WHITE;
@@ -162,6 +172,18 @@ public class GUI
                )
                ;
       
+         this.fileChooser = new JFileChooser();
+      
+         Arrays
+            .stream(ImageType.values())
+            .map(ImageType::name)
+            .map(name -> new FileNameExtensionFilter(name, name.toLowerCase()))
+            .forEach(fileChooser::addChoosableFileFilter)
+            ;
+      
+         fileChooser.setFileHidingEnabled(false);
+         fileChooser.setAcceptAllFileFilterUsed(false);
+      
       }
    
       this.frame = new JFrame();
@@ -170,6 +192,18 @@ public class GUI
       this.frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
    
       this.frame.add(this.createMainPanel());
+   
+      final JMenuBar menuBar = new JMenuBar();
+   
+      final JMenu file = new JMenu("File");
+   
+      final JMenuItem save = this.createSaveMenuItem();
+   
+      file.add(save);
+   
+      menuBar.add(file);
+   
+      this.frame.setJMenuBar(menuBar);
    
       this.frame.pack();
       this.frame.setLocationByPlatform(true);
@@ -187,7 +221,6 @@ public class GUI
    
       mainPanel.add(this.createTopPanel(),                                 BorderLayout.NORTH);
       mainPanel.add(this.createCenterPanel(this.cursorCurrentLocation, this.screenToImagePixelRatio),                              BorderLayout.CENTER);
-      mainPanel.add(this.createBottomPanel(maxRows, maxColumns),   BorderLayout.SOUTH);
    
       return mainPanel;
    
@@ -1077,10 +1110,6 @@ public class GUI
                   event ->
                   {
                   
-                     fileChooser.setFileHidingEnabled(false);
-                     fileChooser.setAcceptAllFileFilterUsed(false);
-                     fileChooser.setFileFilter(new FileNameExtensionFilter("PNG & GIF Images", "png", "gif"));
-                  
                      fileChooser.showOpenDialog(this.frame);
                   
                      if (fileChooser.getSelectedFile() instanceof final File newImageFile)
@@ -1254,27 +1283,12 @@ public class GUI
    
    }
 
-   private JPanel createBottomPanel(final int maxRows, final int maxColumns)
+   private JMenuItem createSaveMenuItem()
    {
    
       final GUI gui = this;
    
-      final JPanel panel = new JPanel();
-   
-      panel.setLayout(new BoxLayout(panel, BoxLayout.LINE_AXIS));
-   
-      final JButton save = new JButton();
-   
-      save.setText("SAVE");
-   
-      enum ImageType
-      {
-      
-         PNG,
-         GIF,
-         ;
-      
-      }
+      final JMenuItem saveMenuItem = new JMenuItem("Save Image");
    
       abstract class ProgressBarTask extends SwingWorker<Void, Integer>
       {
@@ -1287,6 +1301,7 @@ public class GUI
          
             this.progressBar = Objects.requireNonNull(progressBar);
             this.prefix = Objects.requireNonNull(prefix);
+            this.publish(0);
          
          }
       
@@ -1300,7 +1315,11 @@ public class GUI
             {
             
                this.progressBar.setValue(each);
-               this.progressBar.setString(this.prefix + " --- " + this.progressBar.getPercentComplete() + "%");
+            
+               final double percentComplete = this.progressBar.getPercentComplete() * 100;
+            
+               final String string = this.prefix + " --- " + percentComplete + "%";
+               this.progressBar.setString(string);
             
             }
          
@@ -1308,20 +1327,14 @@ public class GUI
       
       }
    
-      final JComboBox<ImageType> imageTypeDropDownMenu = new JComboBox<>(ImageType.values());
-               
       final Color transparentColor = new Color(0, 0, 0, 0);
    
-      save
+      saveMenuItem
          .addActionListener
          (
             actionEvent ->
             {
             
-               final int selectedIndex = imageTypeDropDownMenu.getSelectedIndex();
-               
-               final ImageType imageType = imageTypeDropDownMenu.getItemAt(selectedIndex);
-               
                final JDialog loadingScreen;
                final JProgressBar validationProgressBar;
                final JProgressBar creatingImageProgressBar;
@@ -1333,11 +1346,11 @@ public class GUI
                   loadingScreen = new JDialog(this.frame, true);
                
                   final JPanel loadingScreenPanel = new JPanel();
+                  loadingScreenPanel.setLayout(new BoxLayout(loadingScreenPanel, BoxLayout.PAGE_AXIS));
                
                   validationProgressBar      = new JProgressBar(0, this.imagePixels.size());
                   creatingImageProgressBar   = new JProgressBar(0, this.numImagePixelRows);
                   savingImageProgressBar     = new JProgressBar();
-                  final JButton button = new JButton("");
                
                   loadingScreenPanel.add(validationProgressBar);
                   loadingScreenPanel.add(creatingImageProgressBar);
@@ -1345,14 +1358,153 @@ public class GUI
                
                   loadingScreen.add(loadingScreenPanel);
                
-                  loadingScreen.pack();
-                  loadingScreen.setVisible(true);
-               
                }
             
                TASKS:
                {
                
+                  this.fileChooser.showSaveDialog(loadingScreen);
+               
+                  final BufferedImage finalImage =
+                     new BufferedImage
+                     (
+                        gui.numImagePixelColumns,
+                        gui.numImagePixelRows,
+                        BufferedImage.TYPE_INT_ARGB
+                     )
+                     ;
+               
+                  System.out.println("asdfdg");
+               
+                  final ProgressBarTask saveImageTask =
+                     new ProgressBarTask(savingImageProgressBar, "Saving Image")
+                     {
+                     
+                        @Override
+                        protected Void doInBackground()
+                        {
+                        
+                           try
+                           {
+                           
+                              final File outputFile = Objects.requireNonNull(fileChooser.getSelectedFile());
+                           
+                              if (!(fileChooser.getFileFilter() instanceof final FileNameExtensionFilter filter))
+                              {
+                              
+                                 throw new IllegalArgumentException("BAD TYPE");
+                              
+                              }
+                           
+                              final String fileExtension = filter.getExtensions()[0];
+                           
+                              final ImageWriter imageWriter = ImageIO.getImageWritersByFormatName(fileExtension).next();
+                           
+                              final ProgressBarTask task = this;
+                           
+                              imageWriter
+                                 .addIIOWriteProgressListener
+                                 (
+                                    new IIOWriteProgressListener()
+                                    {
+                                    
+                                       @Override
+                                       public void imageProgress(ImageWriter source, float percentageDone)
+                                       {
+                                       
+                                          publish(Math.round(percentageDone));
+                                       
+                                       }
+                                    
+                                       @Override public void imageStarted(ImageWriter source, int imageIndex) {}
+                                       @Override public void imageComplete(ImageWriter source) {}
+                                       @Override public void thumbnailStarted(ImageWriter source, int imageIndex, int thumbnailIndex) {}
+                                       @Override public void thumbnailProgress(ImageWriter source, float percentageDone) {}
+                                       @Override public void thumbnailComplete(ImageWriter source) {}
+                                       @Override public void writeAborted(ImageWriter source) {}
+                                    
+                                    }
+                                 )
+                                 ;
+                           
+                              try (var imageOutputStream = ImageIO.createImageOutputStream(outputFile))
+                              {
+                              
+                                 imageWriter.setOutput(imageOutputStream);
+                              
+                                 imageWriter.write(finalImage);
+                              
+                                 JOptionPane.showMessageDialog(loadingScreen, outputFile.getAbsolutePath());
+                              
+                                 loadingScreen.dispose();
+                              
+                              }
+                           
+                           }
+                           
+                           catch (final Exception e)
+                           {
+                           
+                              throw new RuntimeException(e);
+                           
+                           }
+                        
+                           return null;
+                        
+                        }
+                     
+                     }
+                     ;
+               
+                  System.out.println("erht");
+               
+                  final ProgressBarTask createImageTask =
+                     new ProgressBarTask(creatingImageProgressBar, "Creating Image")
+                     {
+                     
+                        @Override
+                        protected Void doInBackground()
+                        {
+                        
+                           this.publish(0);
+                        
+                           print("Creating buffered image");
+                        
+                           for (int row = 0; row < gui.numImagePixelRows; row++)
+                           {
+                           
+                              if (row % 1_000 == 0)
+                              {
+                              
+                                 this.publish(row);
+                              
+                              }
+                           
+                              for (int column = 0; column < gui.numImagePixelColumns; column++)
+                              {
+                              
+                                 final int index = (row * gui.numImagePixelColumns) + column;
+                              
+                                 final Color pixel = Objects.requireNonNullElse(gui.imagePixels.get(index), transparentColor);
+                              
+                                 finalImage.setRGB(column, row, pixel.getRGB());
+                              
+                              }
+                           
+                           }
+                        
+                           this.publish(gui.numImagePixelRows);
+                        
+                           saveImageTask.execute();
+                        
+                           return null;
+                        
+                        }
+                     
+                     }
+                     ;
+               
+                  System.out.println("ujhyt");
                
                   final ProgressBarTask validateImageTask =
                      new ProgressBarTask(validationProgressBar, "Validating Image Pixels")
@@ -1365,6 +1517,15 @@ public class GUI
                            print("start");
                         
                            this.publish(0);
+                        
+                           if (!(fileChooser.getFileFilter() instanceof final FileNameExtensionFilter filter))
+                           {
+                           
+                              throw new IllegalArgumentException("HOW");
+                           
+                           }
+                        
+                           final ImageType imageType = ImageType.valueOf(filter.getExtensions()[0].toUpperCase());
                         
                            final Predicate<Color> isOpaqueOrTransparent =
                               givenColor ->
@@ -1395,8 +1556,10 @@ public class GUI
                                        
                                        }
                                     
-                                       if (i % 10 == 0)
+                                       if (i % 1_000 == 0)
                                        {
+                                       
+                                          System.out.println("i = " + i);
                                        
                                           this.publish(i);
                                        
@@ -1477,7 +1640,7 @@ public class GUI
                                        (
                                           IntStream
                                              .range(0, pixelCount)
-                                             .mapToObj(eachInt -> Pixel.of(eachInt, Objects.requireNonNullElse(gui.imagePixels.get(eachInt), transparentColor), maxRows, maxColumns))
+                                             .mapToObj(eachInt -> Pixel.of(eachInt, Objects.requireNonNullElse(gui.imagePixels.get(eachInt), transparentColor), gui.numImagePixelRows, gui.numImagePixelColumns))
                                              .filter(eachPixel -> !isOpaqueOrTransparent.test(eachPixel.color()))
                                              .map(eachPixel -> eachPixel + " -- alpha = " + eachPixel.color().getAlpha())
                                              .toArray(String[]::new)
@@ -1503,11 +1666,15 @@ public class GUI
                            else
                            {
                            
+                              System.out.println(gui.imagePixels.size());
+                           
                               this.publish(gui.imagePixels.size());
                            
                            }
                         
                            print("done");
+                        
+                           createImageTask.execute();
                         
                            return null;
                         
@@ -1516,89 +1683,14 @@ public class GUI
                      }
                      ;
                
-                  System.out.println("a");
+                  System.out.println("trwer423");
                
-                  validateImageTask.execute();
-               
-                  System.out.println("b");
-               
-                  //validateImageTask.get();
-               
-                  System.out.println("c");
-               
-               }
-            
-               print("Creating buffered image");
-            
-               final BufferedImage finalImage =
-                  new
-                     BufferedImage
-                     (
-                        this.numImagePixelColumns,
-                        this.numImagePixelRows,
-                        BufferedImage.TYPE_INT_ARGB
-                     )
-                     ;
-            
-               for (int row = 0; row < this.numImagePixelRows; row++)
-               {
-               
-                  if (row % 1_000 == 0)
-                  {
+                  loadingScreen.setSize(300, 200);
+                  loadingScreen.setVisible(true);
                   
-                     print("populating buffered image -- row = " + row);
-                  
-                  }
+                  System.out.println("aasdkjn");
                
-                  for (int column = 0; column < this.numImagePixelColumns; column++)
-                  {
-                  
-                     final int index = (row * this.numImagePixelColumns) + column;
-                  
-                     final Color pixel = Objects.requireNonNullElse(this.imagePixels.get(index), transparentColor);
-                  
-                     finalImage.setRGB(column, row, pixel.getRGB());
-                  
-                  }
-               
-               }
-            
-               try
-               {
-               
-                  final String imageTypeString = imageType.name().toLowerCase();
-               
-                  print("Writing image");
-               
-                  ImageIO
-                     .write
-                     (
-                        finalImage,
-                        imageTypeString,
-                        new
-                           File
-                           (
-                              LocalDateTime
-                                 .now()
-                                 .format
-                                 (
-                                    DateTimeFormatter
-                                       .ofPattern("yyyyMMdd_HHmmss_SSS")
-                                 )
-                                 +
-                                 "."
-                                 +
-                                 imageType
-                           )
-                     )
-                     ;
-               
-               }
-               
-               catch (final Exception e)
-               {
-               
-                  throw new RuntimeException(e);
+                  SwingUtilities.invokeLater(validateImageTask::execute);
                
                }
             
@@ -1606,10 +1698,7 @@ public class GUI
          )
          ;
    
-      panel.add(save);
-      panel.add(imageTypeDropDownMenu);
-   
-      return panel;
+      return saveMenuItem;
    
    }
 
