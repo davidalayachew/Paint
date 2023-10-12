@@ -22,13 +22,15 @@ s#q0src/test/java
 s#r0run/jGRASP_binaries
 s#t0ignore/help
 s#w0canvases
-!161;g
+!209;g
 %\011src%smain%sjava%sPaint%sGUI.java
+%\011src%smain%sjava%sPaint%sZoomableImage.java
 %\011src%smain%sjava%smodule-info.java
 %\011src%smain%sjava%sPaint%sMain.java
 %\011src%smain%sjava%sPaint%sKeyStrokes.java
-!161;f
+!209;f
 %\011src%smain%sjava%sPaint%sGUI.java
+%\011src%smain%sjava%sPaint%sZoomableImage.java
 %\011src%smain%sjava%smodule-info.java
 %\011src%smain%sjava%sPaint%sMain.java
 %\011src%smain%sjava%sPaint%sKeyStrokes.java

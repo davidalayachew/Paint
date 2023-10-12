@@ -8,15 +8,15 @@ Here is my priority list when it comes to building features.
 
 
 
-SHOWSTOPPER -- PNG, GIF, Pen, Eraser, Zoom Options (Minimal), Pen Size, Color Chooser (INCLUDING INVISIBLE INK FOR PNG AND GIF AT LEAST), Save (image), Open (image)
+* SHOWSTOPPER -- PNG, GIF, Pen, Eraser, Zoom Options (Minimal), Pen Size, Color Chooser (INCLUDING INVISIBLE INK FOR PNG AND GIF AT LEAST), Save (image), Open (image)
 
-MUST-HAVE -- Set Dimensions for image, Paint Bucket, Eyedropper tool, Text tool, Rotation, Crop, Flip, Copy/Cut/Paste (whole image), Image metrics, Mouse-hover pixel info (location/color/etc)
+* MUST-HAVE -- Set Dimensions for image, Paint Bucket, Eyedropper tool, Text tool, Rotation, Crop, Flip, Copy/Cut/Paste (whole image), Image metrics, Mouse-hover pixel info (location/color/etc)
 
-SHOULD-HAVE -- Earlier warnings, Resize Image, Select area, Copy/Cut/Paste (selection), Line/Rectangle/Oval Shape tool, Different Brush types
+* SHOULD-HAVE -- Earlier warnings, Resize Image, Select area, Copy/Cut/Paste (selection), Line/Rectangle/Oval Shape tool, Different Brush types
 
-WANT-TO-HAVE -- Ruler, Grid, More Shapes, More Brush Types
+* WANT-TO-HAVE -- Ruler, Grid, More Shapes, More Brush Types
 
-NICE-TO-HAVE -- Thumbnail, Shape Builder, Brush Builder
+* NICE-TO-HAVE -- Thumbnail, Shape Builder, Brush Builder
 
 ---
 
