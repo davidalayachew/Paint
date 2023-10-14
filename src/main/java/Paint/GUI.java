@@ -110,6 +110,8 @@ public class GUI
             )
             ;
 
+   private static final Point OFF_SCREEN = new Point(-1, -1);
+
    public static final int ARBITRARY_VIEW_BUFFER = 200;
    private static final int MIN_PEN_SIZE = 1;
    private static final int MAX_PEN_SIZE = 10;
@@ -129,6 +131,7 @@ public class GUI
    private Color cursorColor = Color.BLACK;
    private Color gridLinesColor = Color.GRAY;
    private Point cursorCurrentLocation = new Point(0, 0);
+   private Point cursorPreviousLocation = new Point(0, 0);
    private MouseDrawingMode mouseDrawingMode = MouseDrawingMode.COLORING;
    private KeyDrawingMode keyDrawingMode = KeyDrawingMode.NONE;
    private boolean hasGridLines = true;
@@ -271,6 +274,20 @@ public class GUI
       final Runnable UPDATE_DRAWING_PANEL_BORDER_TEXT;
       final Runnable RECREATE_DRAWING_AREA_FRESH;
       final Runnable REPAINT_DRAWING_PANEL;
+      
+      final BiFunction<Point, Integer, Point> originalToZoomed =
+         (original, ratio) -> 
+            new Point(original.x * ratio, original.y * ratio)
+            ;
+   
+      final BiFunction<Point, Integer, Point> zoomedToOriginal =
+         (zoomed, ratio) -> 
+            new Point
+            (
+               (zoomed.x - (zoomed.x % ratio)) / ratio,
+               (zoomed.y - (zoomed.y % ratio)) / ratio
+            )
+            ;
    
       CREATE_DRAWING_PANEL:
       {
@@ -344,8 +361,6 @@ public class GUI
                            DRAW_SUBSECTION_OF_IMAGE:
                            {
                            
-                              System.out.println(rectangle);
-                           
                               final var subImage =
                                  gui.zoomableImage.getSubimage(rectangle, drawingArea);
                            
@@ -356,7 +371,7 @@ public class GUI
                            DRAW_CURSOR_IF_IN_SUBSECTION:
                            {
                            
-                              if (gui.cursorCurrentLocation.getLocation().equals(new Point(-1, -1)))
+                              if (gui.cursorCurrentLocation.getLocation().equals(OFF_SCREEN))
                               {
                               
                                  break DRAW_CURSOR_IF_IN_SUBSECTION;
@@ -476,9 +491,11 @@ public class GUI
                   ;
             
                box.setBorder(BorderFactory.createLineBorder(Color.BLACK, 1));
+               
+               record ClickMetaData(DrawingMode drawingMode, boolean dragging) {}
             
-               final BiConsumer<Point, DrawingMode> performClick =
-                  (maybeNewPoint, drawingMode) ->
+               final BiConsumer<Point, ClickMetaData> performClick =
+                  (maybeNewPoint, clickMetaData) ->
                   {
                   
                      if
@@ -497,26 +514,19 @@ public class GUI
                         return;
                      
                      }
+                     
+                     final int zoomedInImageX = maybeNewPoint.x - (maybeNewPoint.x % gui.screenToImagePixelRatio);
+                     final int zoomedInImageY = maybeNewPoint.y - (maybeNewPoint.y % gui.screenToImagePixelRatio);
+                     
+                     final int originalImageX = zoomedInImageX / gui.screenToImagePixelRatio;
+                     final int originalImageY = zoomedInImageY / gui.screenToImagePixelRatio;
                   
-                     gui
-                        .cursorCurrentLocation
-                        .setLocation
-                        (
-                           maybeNewPoint.x - (maybeNewPoint.x % gui.screenToImagePixelRatio),
-                           maybeNewPoint.y - (maybeNewPoint.y % gui.screenToImagePixelRatio)
-                        )
-                        ;
+                     gui.cursorPreviousLocation.setLocation(gui.cursorCurrentLocation);
                   
-                     final int x = (maybeNewPoint.x - (maybeNewPoint.x % gui.screenToImagePixelRatio)) / gui.screenToImagePixelRatio;
-                     final int y = (maybeNewPoint.y - (maybeNewPoint.y % gui.screenToImagePixelRatio)) / gui.screenToImagePixelRatio;
-                  
-                     final int index = (y * gui.numImagePixelColumns) + x;
-                  
-                     final int startRow      = index / gui.numImagePixelColumns;
-                     final int startColumn   = index % gui.numImagePixelColumns;
+                     gui.cursorCurrentLocation.setLocation(zoomedInImageX, zoomedInImageY);
                   
                      final Color colorToWrite =
-                        switch (drawingMode)
+                        switch (clickMetaData.drawingMode())
                         {
                         
                            case  MOUSE    ->
@@ -541,16 +551,45 @@ public class GUI
                         
                         }
                         ;
-                  
-                     gui.zoomableImage.setRGB(x, y, gui.penSize, gui.penSize, colorToWrite);
+                     
+                     if
+                     (
+                        clickMetaData.dragging() 
+                        && !gui.cursorPreviousLocation.equals(OFF_SCREEN) 
+                        && !gui.cursorPreviousLocation.equals(gui.cursorCurrentLocation)
+                     )
+                     {
+                     
+                        System.out.println(gui.cursorPreviousLocation + " -- " + gui.cursorCurrentLocation);
+                     
+                        gui
+                           .zoomableImage
+                           .drawLine
+                           (
+                              zoomedToOriginal.apply(gui.cursorPreviousLocation, gui.screenToImagePixelRatio),
+                              zoomedToOriginal.apply(gui.cursorCurrentLocation, gui.screenToImagePixelRatio),
+                              gui.penSize,
+                              gui.screenToImagePixelRatio,
+                              colorToWrite
+                           )
+                           ;
+                     
+                     }
+                     
+                     else
+                     {
+                     
+                        gui.zoomableImage.setRGB(originalImageX, originalImageY, gui.penSize, gui.penSize, colorToWrite);
+                     
+                     }
                   
                      REPAINT_DRAWING_PANEL.run();
                   
                   }
                   ;
             
-               final Consumer<Point> performMove =
-                  maybeNewPoint ->
+               final BiConsumer<Point, DrawingMode> performMove =
+                  (maybeNewPoint, drawingMode) ->
                   {
                   
                      if
@@ -577,6 +616,8 @@ public class GUI
                      if (!gui.cursorCurrentLocation.equals(maybeNewPoint))
                      {
                      
+                        gui.cursorPreviousLocation.setLocation(gui.cursorCurrentLocation);
+                     
                         gui.cursorCurrentLocation.setLocation(maybeNewPoint);
                      
                         REPAINT_DRAWING_PANEL.run();
@@ -597,7 +638,7 @@ public class GUI
                         {
                         
                            System.out.println("exited");
-                           gui.cursorCurrentLocation.setLocation(new Point(-1, -1));
+                           gui.cursorCurrentLocation.setLocation(OFF_SCREEN);
                         
                            REPAINT_DRAWING_PANEL.run();
                         
@@ -610,7 +651,7 @@ public class GUI
                            if (SwingUtilities.isLeftMouseButton(mouseEvent))
                            {
                            
-                              performClick.accept(mouseEvent.getPoint(), DrawingMode.MOUSE);
+                              performClick.accept(mouseEvent.getPoint(), new ClickMetaData(DrawingMode.MOUSE, false));
                            
                               thingToFocus.requestFocus();
                            
@@ -632,7 +673,7 @@ public class GUI
                         public void mouseDragged(final MouseEvent mouseEvent)
                         {
                         
-                           performClick.accept(mouseEvent.getPoint(), DrawingMode.MOUSE);
+                           performClick.accept(mouseEvent.getPoint(), new ClickMetaData(DrawingMode.MOUSE, true));
                         
                         }
                      
@@ -640,9 +681,7 @@ public class GUI
                         public void mouseMoved(final MouseEvent mouseEvent)
                         {
                         
-                           final Point maybeNewPoint = mouseEvent.getPoint();
-                        
-                           performMove.accept(maybeNewPoint);
+                           performMove.accept(mouseEvent.getPoint(), DrawingMode.MOUSE);
                         
                         }
                      
@@ -693,7 +732,7 @@ public class GUI
                                  ERASING     ->
                            {
                            
-                              performClick.accept(gui.cursorCurrentLocation, DrawingMode.KEYBOARD);
+                              performClick.accept(gui.cursorCurrentLocation, new ClickMetaData(DrawingMode.KEYBOARD, false));
                            
                            }
                         
@@ -762,14 +801,14 @@ public class GUI
                               
                                  pointModifier.accept(somePoint);
                               
-                                 performMove.accept(somePoint);
+                                 performMove.accept(somePoint, DrawingMode.KEYBOARD);
                               
                                  switch (gui.keyDrawingMode)
                                  {
                                  
                                     case  NONE        -> {}
                                     case  COLORING,
-                                          ERASING     -> performClick.accept(somePoint, DrawingMode.KEYBOARD);
+                                          ERASING     -> performClick.accept(somePoint, new ClickMetaData(DrawingMode.KEYBOARD, false));
                                  
                                  
                                  }

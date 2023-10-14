@@ -3,6 +3,7 @@ package Paint;
 
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.Graphics2D;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
@@ -106,8 +107,6 @@ public record ZoomableImage(BufferedImage originalImage, int screenToImagePixelR
    
       Arrays.fill(originalPixels, rgba);
    
-      System.out.println(column + " -- " + row);
-   
       this
          .originalImage
          .setRGB
@@ -142,18 +141,43 @@ public record ZoomableImage(BufferedImage originalImage, int screenToImagePixelR
    
    }
 
+   public void drawLine(final Point start, final Point end, final int width, final int ratio, final Color color)
+   {
+   
+      Objects.requireNonNull(start);
+      Objects.requireNonNull(end);
+      Objects.requireNonNull(color);
+   
+      final Graphics2D og = this.originalImage.createGraphics();
+      og.setStroke(new java.awt.BasicStroke(width));
+      og.setPaint(color);
+      og.drawLine(start.x, start.y, end.x, end.y);
+   
+      final Graphics2D zg = this.zoomedInImage.createGraphics();
+      zg
+         .drawImage
+         (
+            this.originalImage,
+            0, 0,
+            this.zoomedInImage.getWidth(), this.zoomedInImage.getHeight(),
+            0, 0,
+            this.originalImage.getWidth(), this.originalImage.getHeight(),
+            null
+         )
+         ;
+   
+   }
+
    public BufferedImage getSubimage(final Rectangle rectangle, final Dimension drawingArea)
    {
    
       Objects.requireNonNull(rectangle);
       Objects.requireNonNull(drawingArea);
-      
+   
       final int x = rectangle.x;
       final int y = rectangle.y;
       final int width = Math.min(rectangle.width, drawingArea.width);
       final int height = Math.min(rectangle.height, drawingArea.height);
-   
-      System.out.println(drawingArea);
    
       return this.zoomedInImage.getSubimage(x, y, width, height);
    
@@ -164,17 +188,30 @@ public record ZoomableImage(BufferedImage originalImage, int screenToImagePixelR
    
       final BufferedImage image = new BufferedImage(20, 20, BufferedImage.TYPE_INT_ARGB);
    
-      final ZoomableImage zoomableImage = ZoomableImage.of(image, 4);
+      final Graphics2D gImage = image.createGraphics();
    
-      zoomableImage.setRGB(0, 0, 10, 10, RED);
-      zoomableImage.setRGB(0, 10, 10, 10, ORANGE);
-      zoomableImage.setRGB(10, 0, 10, 10, YELLOW);
-      zoomableImage.setRGB(10, 10, 10, 10, GREEN);
+      gImage.setBackground(Color.WHITE);
+      gImage.clearRect(0, 0, 20, 20);
    
-      zoomableImage.setRGB(0, 0, 10, 10, BLUE);
-      zoomableImage.setRGB(0, 10, 10, 10, MAGENTA);
-      zoomableImage.setRGB(10, 0, 10, 10, WHITE);
-      zoomableImage.setRGB(10, 10, 10, 10, BLACK);
+      gImage.setStroke(new java.awt.BasicStroke(3));
+      gImage.setPaint(Color.RED);
+      gImage.drawLine(0, 0, 20, 20);
+   
+      final BufferedImage bigImage = new BufferedImage(40, 40, BufferedImage.TYPE_INT_ARGB);
+   
+      final Graphics2D g = bigImage.createGraphics();
+   
+      g
+         .drawImage
+         (
+            image,
+            0,0,
+            40,40,
+            0,0,
+            20,20,
+            null
+         )
+         ;
    
    }
 

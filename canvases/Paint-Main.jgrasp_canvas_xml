@@ -8,35 +8,61 @@
     <Show>false</Show>
   </Grid>
   <Scope id="0">
-    <Name>lambda$createColorChooserPanel$6</Name>
-    <Signature>(Ljavax/swing/JButton;Ljava/awt/event/ActionEvent;)V</Signature>
-    <DeclaringType>Paint.GUI</DeclaringType>
-    <Depth>43</Depth>
+    <Name>main</Name>
+    <Signature>([Ljava/lang/String;)V</Signature>
+    <DeclaringType>Paint.ZoomableImage</DeclaringType>
+    <Depth>0</Depth>
   </Scope>
   <Frame>
     <Bounds>
-      <AutoSize>true</AutoSize>
-      <X>2</X>
+      <AutoSize>false</AutoSize>
+      <X>10</X>
       <Y>30</Y>
-      <W>243</W>
-      <H>75</H>
+      <W>348</W>
+      <H>358</H>
     </Bounds>
+    <PanelSize>
+      <Key>jgrasp_viewers.java__awt__Image_ImageView0</Key>
+      <Order>4</Order>
+      <W>354</W>
+      <H>388</H>
+    </PanelSize>
     <Viewer>
       <ScopeID>0</ScopeID>
-      <Expression>`local java.awt.Color` chosenColor</Expression>
-      <ViewerClass>jgrasp_viewers.java__awt__Color_ColorView</ViewerClass>
+      <Expression>`local java.awt.image.BufferedImage` image</Expression>
+      <ViewerClass>jgrasp_viewers.java__awt__Image_ImageView</ViewerClass>
+    </Viewer>
+  </Frame>
+  <Frame>
+    <Bounds>
+      <AutoSize>false</AutoSize>
+      <X>360</X>
+      <Y>30</Y>
+      <W>408</W>
+      <H>348</H>
+    </Bounds>
+    <PanelSize>
+      <Key>jgrasp_viewers.java__awt__Image_ImageView0</Key>
+      <Order>4</Order>
+      <W>414</W>
+      <H>378</H>
+    </PanelSize>
+    <Viewer>
+      <ScopeID>0</ScopeID>
+      <Expression>`local java.awt.image.BufferedImage` bigImage</Expression>
+      <ViewerClass>jgrasp_viewers.java__awt__Image_ImageView</ViewerClass>
     </Viewer>
   </Frame>
   <Size>
-    <W>268</W>
-    <H>398</H>
+    <W>946</W>
+    <H>417</H>
   </Size>
   <ESize>
     <W>683</W>
     <H>384</H>
   </ESize>
   <ISize>
-    <W>229</W>
+    <W>144</W>
     <H>242</H>
   </ISize>
 </Canvas>
