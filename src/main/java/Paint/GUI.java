@@ -373,27 +373,34 @@ public class GUI
                               
                                  final int minWidth = Math.min(rectangle.width, drawingArea.width);
                                  final int quantizedMinWidth = quantize.applyAsInt(minWidth);
-                                 width = (quantizedMinWidth + gui.screenToImagePixelRatio) / gui.screenToImagePixelRatio;
+                                 final int potentialWidth = (quantizedMinWidth + gui.screenToImagePixelRatio) / gui.screenToImagePixelRatio;
+                                 width = Math.min(gui.image.getWidth(), potentialWidth);
                               
                                  final int minHeight = Math.min(rectangle.height, drawingArea.height);
                                  final int quantizedMinHeight = quantize.applyAsInt(minHeight);
-                                 height = (quantizedMinHeight + gui.screenToImagePixelRatio) / gui.screenToImagePixelRatio;
+                                 final int potentialHeight = (quantizedMinHeight + gui.screenToImagePixelRatio) / gui.screenToImagePixelRatio;
+                                 height = Math.min(gui.image.getHeight(), potentialHeight);
                               
                               }
                            
-                              final BufferedImage subImage =
-                                 gui
-                                    .image
-                                    .getSubimage
-                                    (
-                                       x,
-                                       y,
-                                       width,
-                                       height
-                                    )
-                                    ;
+                              g.setPaint(gui.cursorColor);
                            
-                              g.drawImage(subImage, null, rectangle.x, rectangle.y);
+                              g
+                                 .drawImage
+                                 (
+                                    gui.image,
+                                    rectangle.x,
+                                    rectangle.y,
+                                    rectangle.x + rectangle.width,
+                                    rectangle.y + rectangle.height,
+                                    x,
+                                    y,
+                                    width,
+                                    height,
+                                    gui.transparencyColor,
+                                    null
+                                 )
+                                 ;
                            
                            }
                         
@@ -554,7 +561,10 @@ public class GUI
                   
                      gui.cursorCurrentLocation.setLocation(zoomedInImageX, zoomedInImageY);
                   
-                     final Color colorToWrite =
+                     System.out.println("ox = " + originalImageX);
+                     System.out.println("oy = " + originalImageY);
+                  
+                     final boolean coloring =
                         switch (clickMetaData.drawingMode())
                         {
                         
@@ -562,8 +572,8 @@ public class GUI
                                  switch (gui.mouseDrawingMode)
                                  {
                                  
-                                    case COLORING  -> gui.cursorColor;
-                                    case ERASING   -> gui.transparencyColor;
+                                    case COLORING  -> true;
+                                    case ERASING   -> false;
                                  
                                  }
                                  ;
@@ -571,8 +581,8 @@ public class GUI
                                  switch (gui.keyDrawingMode)
                                  {
                                  
-                                    case  COLORING -> gui.cursorColor;
-                                    case  ERASING  -> gui.transparencyColor;
+                                    case  COLORING -> true;
+                                    case  ERASING  -> false;
                                     case  NONE     -> throw new IllegalArgumentException();
                                  
                                  }
@@ -580,6 +590,8 @@ public class GUI
                         
                         }
                         ;
+                  
+                     final Graphics2D graphics = gui.image.createGraphics();
                   
                      if
                      (
@@ -589,10 +601,24 @@ public class GUI
                      )
                      {
                      
-                        gui.zoomableImage.setRGB(originalImageX, originalImageY, gui.penSize, gui.penSize, colorToWrite);
+                        if (coloring)
+                        {
+                        
+                           graphics.setPaint(gui.cursorColor);
+                        
+                           graphics.fillRect(originalImageX, originalImageY, gui.penSize, gui.penSize);
+                        
+                        }
+                        
+                        else
+                        {
+                        
+                           graphics.setBackground(gui.transparencyColor);
+                        
+                           graphics.clearRect(originalImageX, originalImageY, gui.penSize, gui.penSize);
+                        
+                        }
                      
-                        // final Graphics2D graphics = gui.image.createGraphics();
-                     // 
                         // graphics
                            // .drawLine
                            // (
@@ -609,7 +635,9 @@ public class GUI
                      else
                      {
                      
-                        gui.zoomableImage.setRGB(originalImageX, originalImageY, gui.penSize, gui.penSize, colorToWrite);
+                        graphics.setPaint(gui.cursorColor);
+                     
+                        graphics.fillRect(originalImageX, originalImageY, gui.penSize, gui.penSize);
                      
                      }
                   
@@ -954,8 +982,6 @@ public class GUI
                      }
                   
                      this.screenToImagePixelRatio = iii;
-                  
-                     this.zoomableImage = this.zoomableImage.resample(this.screenToImagePixelRatio);
                   
                      this.cursorCurrentLocation.setLocation(new Point(0, 0));
                   
@@ -1358,7 +1384,7 @@ public class GUI
                   final JPanel loadingScreenPanel = new JPanel();
                   loadingScreenPanel.setLayout(new BoxLayout(loadingScreenPanel, BoxLayout.PAGE_AXIS));
                
-                  validationProgressBar      = new JProgressBar(0, gui.zoomableImage.originalImage().getHeight() * gui.zoomableImage.originalImage().getWidth());
+                  validationProgressBar      = new JProgressBar(0, gui.image.getHeight() * gui.image.getWidth());
                   savingImageProgressBar     = new JProgressBar();
                
                   loadingScreenPanel.add(validationProgressBar);
@@ -1381,8 +1407,8 @@ public class GUI
                   final BufferedImage finalImage =
                      new BufferedImage
                      (
-                        gui.numImagePixelColumns,
-                        gui.numImagePixelRows,
+                        gui.image.getWidth(),
+                        gui.image.getHeight(),
                         BufferedImage.TYPE_INT_ARGB
                      )
                      ;
@@ -1511,12 +1537,12 @@ public class GUI
                                  case  GIF   ->
                                  {
                                  
-                                    final int numImagePixels = gui.zoomableImage.originalImage().getHeight() * gui.zoomableImage.originalImage().getWidth();
+                                    final int numImagePixels = gui.image.getHeight() * gui.image.getWidth();
                                  
                                     for (int i = 0; i < numImagePixels; i++)
                                     {
                                     
-                                       final Color eachColor = new Color(gui.zoomableImage.originalImage().getRGB(i % gui.numImagePixelColumns, i / gui.numImagePixelColumns), true);
+                                       final Color eachColor = new Color(gui.image.getRGB(i % gui.image.getWidth(), i / gui.image.getWidth()), true);
                                     
                                        if (!isOpaqueOrTransparent.test(eachColor))
                                        {
@@ -1602,7 +1628,7 @@ public class GUI
                                  )
                                  ;
                            
-                              final int pixelCount = gui.zoomableImage.originalImage().getHeight() * gui.zoomableImage.originalImage().getWidth();
+                              final int pixelCount = gui.image.getHeight() * gui.image.getWidth();
                            
                               listOfBadPixels
                                  .add
@@ -1613,7 +1639,7 @@ public class GUI
                                        (
                                           IntStream
                                              .range(0, pixelCount)
-                                             .mapToObj(eachInt -> Pixel.of(eachInt, gui.zoomableImage.originalImage().getRGB(eachInt % gui.numImagePixelColumns, eachInt / gui.numImagePixelColumns), gui.numImagePixelRows, gui.numImagePixelColumns))
+                                             .mapToObj(eachInt -> Pixel.of(eachInt, gui.image.getRGB(eachInt % gui.image.getWidth(), eachInt / gui.image.getWidth()), gui.image.getHeight(), gui.image.getWidth()))
                                              .filter(eachPixel -> !isOpaqueOrTransparent.test(eachPixel.color()))
                                              .map(eachPixel -> eachPixel + " -- alpha = " + eachPixel.color().getAlpha())
                                              .toArray(String[]::new)
@@ -1639,7 +1665,7 @@ public class GUI
                            else
                            {
                            
-                              this.publish(gui.numImagePixelRows * gui.numImagePixelColumns);
+                              this.publish(gui.image.getHeight() * gui.image.getWidth());
                            
                            }
                         
@@ -1683,8 +1709,8 @@ public class GUI
       return
          new Dimension
          (
-            this.numImagePixelColumns * this.screenToImagePixelRatio,
-            this.numImagePixelRows * this.screenToImagePixelRatio
+            this.image.getWidth() * this.screenToImagePixelRatio,
+            this.image.getHeight() * this.screenToImagePixelRatio
          )
          ;
    
