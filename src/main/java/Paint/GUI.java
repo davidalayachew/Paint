@@ -123,10 +123,8 @@ public class GUI
    private final JFrame frame;
    private final JFileChooser fileChooser;
    private final JScrollPane drawingAreaScrollPane = new JScrollPane();
-   private final int numImagePixelRows;
-   private final int numImagePixelColumns;
 
-   private ZoomableImage zoomableImage;
+   private BufferedImage image;
    private Color transparencyColor = Color.WHITE;
    private Color cursorColor = Color.BLACK;
    private Color gridLinesColor = Color.GRAY;
@@ -174,17 +172,7 @@ public class GUI
       INITALIZING_METADATA_INSTANCE_FIELDS:
       {
       
-         this.numImagePixelRows = image.getHeight();
-         this.numImagePixelColumns = image.getWidth();
-      
-         this.zoomableImage =
-            ZoomableImage
-               .of
-               (
-                  image,
-                  this.screenToImagePixelRatio
-               )
-               ;
+         this.image = image;
       
          this.fileChooser = new JFileChooser();
       
@@ -231,9 +219,6 @@ public class GUI
    
       final JPanel mainPanel = new JPanel(new BorderLayout());
    
-      final int maxRows    = this.numImagePixelRows;
-      final int maxColumns = this.numImagePixelColumns;
-   
       mainPanel.add(this.createTopPanel(),      BorderLayout.NORTH);
       mainPanel.add(this.createCenterPanel(),   BorderLayout.CENTER);
    
@@ -274,14 +259,14 @@ public class GUI
       final Runnable UPDATE_DRAWING_PANEL_BORDER_TEXT;
       final Runnable RECREATE_DRAWING_AREA_FRESH;
       final Runnable REPAINT_DRAWING_PANEL;
-      
+   
       final BiFunction<Point, Integer, Point> originalToZoomed =
-         (original, ratio) -> 
+         (original, ratio) ->
             new Point(original.x * ratio, original.y * ratio)
             ;
    
       final BiFunction<Point, Integer, Point> zoomedToOriginal =
-         (zoomed, ratio) -> 
+         (zoomed, ratio) ->
             new Point
             (
                (zoomed.x - (zoomed.x % ratio)) / ratio,
@@ -323,6 +308,11 @@ public class GUI
             
                final Dimension drawingArea = gui.deriveDrawingAreaDimensions();
             
+               final IntUnaryOperator quantize =
+                  num ->
+                     num - (num % gui.screenToImagePixelRatio)
+                     ;
+            
                final Box.Filler box =
                   new Box.Filler(drawingArea, drawingArea, drawingArea)
                   {
@@ -343,15 +333,15 @@ public class GUI
                         
                            final Rectangle rectangle  = gui.drawingAreaScrollPane.getViewport().getViewRect();
                         
-                           final int x = rectangle.x;
-                           final int y = rectangle.y;
-                           final int width = Math.min(rectangle.width, drawingArea.width);
-                           final int height = Math.min(rectangle.height, drawingArea.height);
-                        
                            //We are only drawing a subsection because we may be working with GIGANTIC images.
                            //If we attempt to draw the whole image, performance will drop like a rock.
                            CALCULATE_SUBSECTION_TO_DRAW:
                            {
+                           
+                              final int x = rectangle.x;
+                              final int y = rectangle.y;
+                              final int width = Math.min(rectangle.width, drawingArea.width);
+                              final int height = Math.min(rectangle.height, drawingArea.height);
                            
                               g.setBackground(gui.transparencyColor);
                               g.clearRect(rectangle.x, rectangle.y, width, height);
@@ -361,10 +351,49 @@ public class GUI
                            DRAW_SUBSECTION_OF_IMAGE:
                            {
                            
-                              final var subImage =
-                                 gui.zoomableImage.getSubimage(rectangle, drawingArea);
+                              final int x;
+                              final int y;
                            
-                              g.drawImage(subImage, null, x, y);
+                              CALCULATE_ORIGINAL_POSITION:
+                              {
+                              
+                                 final int quantizedX = quantize.applyAsInt(rectangle.x);
+                                 final int quantizedY = quantize.applyAsInt(rectangle.y);
+                              
+                                 x = Math.max(quantizedX, 0) / gui.screenToImagePixelRatio;
+                                 y = Math.max(quantizedY, 0) / gui.screenToImagePixelRatio;
+                              
+                              }
+                           
+                              final int width;
+                              final int height;
+                           
+                              CALCULATE_ORIGINAL_DIMENSION:
+                              {
+                              
+                                 final int minWidth = Math.min(rectangle.width, drawingArea.width);
+                                 final int quantizedMinWidth = quantize.applyAsInt(minWidth);
+                                 width = (quantizedMinWidth + gui.screenToImagePixelRatio) / gui.screenToImagePixelRatio;
+                              
+                                 final int minHeight = Math.min(rectangle.height, drawingArea.height);
+                                 final int quantizedMinHeight = quantize.applyAsInt(minHeight);
+                                 height = (quantizedMinHeight + gui.screenToImagePixelRatio) / gui.screenToImagePixelRatio;
+                              
+                              }
+                           
+                              final BufferedImage subImage =
+                                 gui
+                                    .image
+                                    .getSubimage
+                                    (
+                                       x,
+                                       y,
+                                       width,
+                                       height
+                                    )
+                                    ;
+                           
+                              g.drawImage(subImage, null, rectangle.x, rectangle.y);
                            
                            }
                         
@@ -491,7 +520,7 @@ public class GUI
                   ;
             
                box.setBorder(BorderFactory.createLineBorder(Color.BLACK, 1));
-               
+            
                record ClickMetaData(DrawingMode drawingMode, boolean dragging) {}
             
                final BiConsumer<Point, ClickMetaData> performClick =
@@ -514,10 +543,10 @@ public class GUI
                         return;
                      
                      }
-                     
-                     final int zoomedInImageX = maybeNewPoint.x - (maybeNewPoint.x % gui.screenToImagePixelRatio);
-                     final int zoomedInImageY = maybeNewPoint.y - (maybeNewPoint.y % gui.screenToImagePixelRatio);
-                     
+                  
+                     final int zoomedInImageX = quantize.applyAsInt(maybeNewPoint.x);
+                     final int zoomedInImageY = quantize.applyAsInt(maybeNewPoint.y);
+                  
                      final int originalImageX = zoomedInImageX / gui.screenToImagePixelRatio;
                      final int originalImageY = zoomedInImageY / gui.screenToImagePixelRatio;
                   
@@ -551,28 +580,29 @@ public class GUI
                         
                         }
                         ;
-                     
+                  
                      if
                      (
-                        clickMetaData.dragging() 
-                        && !gui.cursorPreviousLocation.equals(OFF_SCREEN) 
+                        clickMetaData.dragging()
+                        && !gui.cursorPreviousLocation.equals(OFF_SCREEN)
                         && !gui.cursorPreviousLocation.equals(gui.cursorCurrentLocation)
                      )
                      {
                      
-                        System.out.println(gui.cursorPreviousLocation + " -- " + gui.cursorCurrentLocation);
+                        gui.zoomableImage.setRGB(originalImageX, originalImageY, gui.penSize, gui.penSize, colorToWrite);
                      
-                        gui
-                           .zoomableImage
-                           .drawLine
-                           (
-                              zoomedToOriginal.apply(gui.cursorPreviousLocation, gui.screenToImagePixelRatio),
-                              zoomedToOriginal.apply(gui.cursorCurrentLocation, gui.screenToImagePixelRatio),
-                              gui.penSize,
-                              gui.screenToImagePixelRatio,
-                              colorToWrite
-                           )
-                           ;
+                        // final Graphics2D graphics = gui.image.createGraphics();
+                     // 
+                        // graphics
+                           // .drawLine
+                           // (
+                           //    zoomedToOriginal.apply(gui.cursorPreviousLocation, gui.screenToImagePixelRatio),
+                           //    zoomedToOriginal.apply(gui.cursorCurrentLocation, gui.screenToImagePixelRatio),
+                           //    gui.penSize,
+                           //    gui.screenToImagePixelRatio,
+                           //    colorToWrite
+                           // )
+                           // ;
                      
                      }
                      
@@ -1158,9 +1188,9 @@ public class GUI
                               .apply
                               (
                                  "Drawing Area -- "
-                                 + this.numImagePixelRows
+                                 + gui.image.getHeight()
                                  + " rows and "
-                                 + this.numImagePixelColumns
+                                 + gui.image.getWidth()
                                  + " columns"
                               ),
                            BorderFactory.createLineBorder(Color.BLACK, 1)
@@ -1357,8 +1387,6 @@ public class GUI
                      )
                      ;
                
-                  System.out.println("asdfdg");
-               
                   final ProgressBarTask saveImageTask =
                      new ProgressBarTask(savingImageProgressBar, "Saving Image")
                      {
@@ -1448,8 +1476,6 @@ public class GUI
                      }
                      ;
                
-                  System.out.println("ujhyt");
-               
                   final ProgressBarTask validateImageTask =
                      new ProgressBarTask(validationProgressBar, "Validating Image Pixels")
                      {
@@ -1502,8 +1528,6 @@ public class GUI
                                        if (i % 1_000 == 0)
                                        {
                                        
-                                          System.out.println("i = " + i);
-                                       
                                           this.publish(i);
                                        
                                        }
@@ -1548,12 +1572,11 @@ public class GUI
                                     final int column  = index % maxColumns;
                                  
                                     return
-                                       new
-                                       Pixel
+                                       new Pixel
                                        (
-                                       row,
-                                       column,
-                                       color
+                                          row,
+                                          column,
+                                          color
                                        );
                                  
                                  }
@@ -1616,8 +1639,6 @@ public class GUI
                            else
                            {
                            
-                              System.out.println(gui.numImagePixelRows * gui.numImagePixelColumns);
-                           
                               this.publish(gui.numImagePixelRows * gui.numImagePixelColumns);
                            
                            }
@@ -1632,8 +1653,6 @@ public class GUI
                      
                      }
                      ;
-               
-                  System.out.println("trwer423");
                
                   loadingScreen.setSize(300, 200);
                

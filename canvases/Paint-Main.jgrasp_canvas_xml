@@ -7,54 +7,8 @@
     <Snap>true</Snap>
     <Show>false</Show>
   </Grid>
-  <Scope id="0">
-    <Name>main</Name>
-    <Signature>([Ljava/lang/String;)V</Signature>
-    <DeclaringType>Paint.ZoomableImage</DeclaringType>
-    <Depth>0</Depth>
-  </Scope>
-  <Frame>
-    <Bounds>
-      <AutoSize>false</AutoSize>
-      <X>10</X>
-      <Y>30</Y>
-      <W>348</W>
-      <H>358</H>
-    </Bounds>
-    <PanelSize>
-      <Key>jgrasp_viewers.java__awt__Image_ImageView0</Key>
-      <Order>4</Order>
-      <W>354</W>
-      <H>388</H>
-    </PanelSize>
-    <Viewer>
-      <ScopeID>0</ScopeID>
-      <Expression>`local java.awt.image.BufferedImage` image</Expression>
-      <ViewerClass>jgrasp_viewers.java__awt__Image_ImageView</ViewerClass>
-    </Viewer>
-  </Frame>
-  <Frame>
-    <Bounds>
-      <AutoSize>false</AutoSize>
-      <X>360</X>
-      <Y>30</Y>
-      <W>408</W>
-      <H>348</H>
-    </Bounds>
-    <PanelSize>
-      <Key>jgrasp_viewers.java__awt__Image_ImageView0</Key>
-      <Order>4</Order>
-      <W>414</W>
-      <H>378</H>
-    </PanelSize>
-    <Viewer>
-      <ScopeID>0</ScopeID>
-      <Expression>`local java.awt.image.BufferedImage` bigImage</Expression>
-      <ViewerClass>jgrasp_viewers.java__awt__Image_ImageView</ViewerClass>
-    </Viewer>
-  </Frame>
   <Size>
-    <W>946</W>
+    <W>305</W>
     <H>417</H>
   </Size>
   <ESize>
