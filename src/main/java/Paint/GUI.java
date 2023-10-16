@@ -110,6 +110,7 @@ public class GUI
             )
             ;
 
+   private static final Color CLEAR = new Color(0, 0, 0, 0);
    private static final Point OFF_SCREEN = new Point(-1, -1);
 
    public static final int ARBITRARY_VIEW_BUFFER = 200;
@@ -389,10 +390,10 @@ public class GUI
                                  .drawImage
                                  (
                                     gui.image,
-                                    rectangle.x,
-                                    rectangle.y,
-                                    rectangle.x + rectangle.width,
-                                    rectangle.y + rectangle.height,
+                                    0,
+                                    0,
+                                    drawingArea.width,
+                                    drawingArea.height,
                                     x,
                                     y,
                                     width,
@@ -561,37 +562,37 @@ public class GUI
                   
                      gui.cursorCurrentLocation.setLocation(zoomedInImageX, zoomedInImageY);
                   
-                     System.out.println("ox = " + originalImageX);
-                     System.out.println("oy = " + originalImageY);
-                  
-                     final boolean coloring =
-                        switch (clickMetaData.drawingMode())
-                        {
-                        
-                           case  MOUSE    ->
-                                 switch (gui.mouseDrawingMode)
-                                 {
-                                 
-                                    case COLORING  -> true;
-                                    case ERASING   -> false;
-                                 
-                                 }
-                                 ;
-                           case  KEYBOARD ->
-                                 switch (gui.keyDrawingMode)
-                                 {
-                                 
-                                    case  COLORING -> true;
-                                    case  ERASING  -> false;
-                                    case  NONE     -> throw new IllegalArgumentException();
-                                 
-                                 }
-                                 ;
-                        
-                        }
-                        ;
-                  
                      final Graphics2D graphics = gui.image.createGraphics();
+                  
+                     graphics
+                        .setPaint
+                        (
+                           switch (clickMetaData.drawingMode())
+                           {
+                           
+                              case  MOUSE    ->
+                                    switch (gui.mouseDrawingMode)
+                                    {
+                                    
+                                       case COLORING  -> gui.cursorColor;
+                                       case ERASING   -> CLEAR;
+                                    
+                                    }
+                                    ;
+                              case  KEYBOARD ->
+                                    switch (gui.keyDrawingMode)
+                                    {
+                                    
+                                       case  COLORING -> gui.cursorColor;
+                                       case  ERASING  -> CLEAR;
+                                       case  NONE     -> throw new IllegalArgumentException();
+                                    
+                                    }
+                                    ;
+                           
+                           }
+                        )
+                        ;
                   
                      if
                      (
@@ -601,43 +602,32 @@ public class GUI
                      )
                      {
                      
-                        if (coloring)
-                        {
-                        
-                           graphics.setPaint(gui.cursorColor);
-                        
-                           graphics.fillRect(originalImageX, originalImageY, gui.penSize, gui.penSize);
-                        
-                        }
-                        
-                        else
-                        {
-                        
-                           graphics.setBackground(gui.transparencyColor);
-                        
-                           graphics.clearRect(originalImageX, originalImageY, gui.penSize, gui.penSize);
-                        
-                        }
+                        graphics.setStroke(new java.awt.BasicStroke(gui.penSize));
                      
-                        // graphics
-                           // .drawLine
-                           // (
-                           //    zoomedToOriginal.apply(gui.cursorPreviousLocation, gui.screenToImagePixelRatio),
-                           //    zoomedToOriginal.apply(gui.cursorCurrentLocation, gui.screenToImagePixelRatio),
-                           //    gui.penSize,
-                           //    gui.screenToImagePixelRatio,
-                           //    colorToWrite
-                           // )
-                           // ;
+                        final var first = zoomedToOriginal.apply(gui.cursorPreviousLocation, gui.screenToImagePixelRatio);
+                        final var second = zoomedToOriginal.apply(gui.cursorCurrentLocation, gui.screenToImagePixelRatio);
+                     
+                        System.out.println("first.x = " + first.x);
+                        System.out.println("first.y = " + first.y);
+                        System.out.println("second.x = " + second.x);
+                        System.out.println("second.y = " + second.y);
+                     
+                        graphics
+                           .drawLine
+                           (
+                              first.x,
+                              first.y,
+                              second.x,
+                              second.y
+                           )
+                           ;
                      
                      }
                      
                      else
                      {
                      
-                        graphics.setPaint(gui.cursorColor);
-                     
-                        graphics.fillRect(originalImageX, originalImageY, gui.penSize, gui.penSize);
+                        graphics.drawLine(originalImageX, originalImageY, originalImageX, originalImageY);
                      
                      }
                   

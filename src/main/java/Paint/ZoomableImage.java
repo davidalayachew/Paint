@@ -186,6 +186,20 @@ public record ZoomableImage(BufferedImage originalImage, int screenToImagePixelR
    public static void main(final String[] args)
    {
    
+      idk();
+   
+   }
+
+   private static void idk2()
+   {
+   
+      final BufferedImage image = new BufferedImage(20, 20, BufferedImage.TYPE_INT_ARGB);
+   
+   }
+
+   private static void idk()
+   {
+   
       final BufferedImage image = new BufferedImage(20, 20, BufferedImage.TYPE_INT_ARGB);
    
       final Graphics2D gImage = image.createGraphics();
@@ -193,9 +207,18 @@ public record ZoomableImage(BufferedImage originalImage, int screenToImagePixelR
       gImage.setBackground(Color.WHITE);
       gImage.clearRect(0, 0, 20, 20);
    
-      gImage.setStroke(new java.awt.BasicStroke(3));
+      gImage.setStroke(new java.awt.BasicStroke(2));
       gImage.setPaint(Color.RED);
-      gImage.drawLine(0, 0, 20, 20);
+      gImage.drawLine(10, 6, 11, 6);
+      gImage.drawLine(11, 6, 12, 6);
+      gImage.drawLine(12, 6, 13, 6);
+      gImage.drawLine(13, 6, 14, 6);
+   
+      gImage.setPaint(Color.GREEN);
+      gImage.fillRect(5, 6, 2, 2);
+   
+      gImage.setPaint(Color.GREEN);
+      gImage.drawLine(15, 6, 15, 6);
    
       final BufferedImage bigImage = new BufferedImage(40, 40, BufferedImage.TYPE_INT_ARGB);
    
