@@ -7,6 +7,7 @@ import javax.swing.*;
 import javax.swing.border.*;
 import javax.swing.colorchooser.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
+import java.awt.AlphaComposite;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -215,6 +216,29 @@ public class GUI
    
    }
 
+   private Point generateCursorStartingPoint()
+   {
+   
+      final int offset =
+         (
+            this.screenToImagePixelRatio * this.penSize / 2
+         )
+         -
+         (
+            (
+               this.penSize % 2
+            )
+            *
+            (
+               this.screenToImagePixelRatio / 2
+            )
+         )
+         ;
+   
+      return new Point(offset, offset);
+   
+   }
+
    private JPanel createMainPanel()
    {
    
@@ -394,10 +418,11 @@ public class GUI
                                     0,
                                     drawingArea.width,
                                     drawingArea.height,
-                                    x,
-                                    y,
-                                    width,
-                                    height,
+                                    0, 0, gui.image.getWidth(), gui.image.getHeight(),
+                                 //    x,
+                                 //    y,
+                                 //    width,
+                                 //    height,
                                     gui.transparencyColor,
                                     null
                                  )
@@ -421,7 +446,7 @@ public class GUI
                               {
                               
                                  g
-                                    .setColor
+                                    .setPaint
                                     (
                                        switch (gui.keyDrawingMode)
                                        {
@@ -442,13 +467,22 @@ public class GUI
                                     )
                                     ;
                               
+                                 g.setStroke(new java.awt.BasicStroke(screenPixelCursorSize));
+                              
+                                 final int transform = gui.screenToImagePixelRatio / 2;
+                              
+                                 final int evenPush = ((gui.penSize - 1) % 2) * (gui.screenToImagePixelRatio / 2);
+                              
+                                 var asd = gui.cursorCurrentLocation.x + transform - evenPush;
+                                 var ert = gui.cursorCurrentLocation.y + transform - evenPush;
+                              
                                  g
-                                    .fillRect
+                                    .drawLine
                                     (
-                                       gui.cursorCurrentLocation.x,
-                                       gui.cursorCurrentLocation.y,
-                                       screenPixelCursorSize,
-                                       screenPixelCursorSize
+                                       asd,
+                                       ert,
+                                       asd,
+                                       ert
                                     )
                                     ;
                               
@@ -462,7 +496,8 @@ public class GUI
                               if (gui.hasGridLines && gui.screenToImagePixelRatio > 1)
                               {
                               
-                                 g.setColor(gui.gridLinesColor);
+                                 g.setPaint(gui.gridLinesColor);
+                                 g.setStroke(new java.awt.BasicStroke(1));
                               
                                  IntStream
                                     .range(rectangle.y, rectangle.y + rectangle.height)
@@ -564,35 +599,52 @@ public class GUI
                   
                      final Graphics2D graphics = gui.image.createGraphics();
                   
-                     graphics
-                        .setPaint
-                        (
-                           switch (clickMetaData.drawingMode())
-                           {
-                           
-                              case  MOUSE    ->
-                                    switch (gui.mouseDrawingMode)
-                                    {
-                                    
-                                       case COLORING  -> gui.cursorColor;
-                                       case ERASING   -> CLEAR;
-                                    
-                                    }
-                                    ;
-                              case  KEYBOARD ->
-                                    switch (gui.keyDrawingMode)
-                                    {
-                                    
-                                       case  COLORING -> gui.cursorColor;
-                                       case  ERASING  -> CLEAR;
-                                       case  NONE     -> throw new IllegalArgumentException();
-                                    
-                                    }
-                                    ;
-                           
-                           }
-                        )
+                     record GraphicsMetadata(Color someColor, AlphaComposite alphaComposite)
+                     {
+                     
+                        GraphicsMetadata
+                        {
+                        
+                           Objects.requireNonNull(someColor);
+                           Objects.requireNonNull(alphaComposite);
+                        
+                        }
+                     
+                     
+                     
+                     }
+                  
+                     final GraphicsMetadata graphicsMetadata =
+                        switch (clickMetaData.drawingMode())
+                        {
+                        
+                           case  MOUSE    ->
+                                 switch (gui.mouseDrawingMode)
+                                 {
+                                 
+                                    case COLORING  -> new GraphicsMetadata(gui.cursorColor, AlphaComposite.SrcOver);
+                                    case ERASING   -> new GraphicsMetadata(CLEAR, AlphaComposite.SrcIn);
+                                 
+                                 }
+                                 ;
+                           case  KEYBOARD ->
+                                 switch (gui.keyDrawingMode)
+                                 {
+                                 
+                                    case  COLORING -> new GraphicsMetadata(gui.cursorColor, AlphaComposite.SrcOver);
+                                    case  ERASING  -> new GraphicsMetadata(CLEAR, AlphaComposite.SrcIn);
+                                    case  NONE     -> throw new IllegalArgumentException();
+                                 
+                                 }
+                                 ;
+                        
+                        }
                         ;
+                  
+                     graphics.setPaint(graphicsMetadata.someColor());
+                     graphics.setComposite(graphicsMetadata.alphaComposite());
+                  
+                     graphics.setStroke(new java.awt.BasicStroke(gui.penSize));
                   
                      if
                      (
@@ -602,15 +654,8 @@ public class GUI
                      )
                      {
                      
-                        graphics.setStroke(new java.awt.BasicStroke(gui.penSize));
-                     
                         final var first = zoomedToOriginal.apply(gui.cursorPreviousLocation, gui.screenToImagePixelRatio);
                         final var second = zoomedToOriginal.apply(gui.cursorCurrentLocation, gui.screenToImagePixelRatio);
-                     
-                        System.out.println("first.x = " + first.x);
-                        System.out.println("first.y = " + first.y);
-                        System.out.println("second.x = " + second.x);
-                        System.out.println("second.y = " + second.y);
                      
                         graphics
                            .drawLine
@@ -973,7 +1018,7 @@ public class GUI
                   
                      this.screenToImagePixelRatio = iii;
                   
-                     this.cursorCurrentLocation.setLocation(new Point(0, 0));
+                     this.cursorCurrentLocation.setLocation(this.generateCursorStartingPoint());
                   
                      RECREATE_DRAWING_AREA_FRESH.run();
                   
@@ -1262,7 +1307,7 @@ public class GUI
             
                this.penSize = iii;
             
-               this.cursorCurrentLocation.setLocation(new Point(0, 0));
+               this.cursorCurrentLocation.setLocation(this.generateCursorStartingPoint());
             
                this.frame.repaint();
             

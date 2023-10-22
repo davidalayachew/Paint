@@ -9,6 +9,7 @@ import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 import java.util.Arrays;
 import java.util.Objects;
+import java.util.stream.Stream;
 
 import static java.awt.Color.*;
 
@@ -216,9 +217,31 @@ public record ZoomableImage(BufferedImage originalImage, int screenToImagePixelR
    
       gImage.setPaint(Color.GREEN);
       gImage.fillRect(5, 6, 2, 2);
+      
+      final int a = 3;
    
-      gImage.setPaint(Color.GREEN);
-      gImage.drawLine(15, 6, 15, 6);
+      Stream
+         .iterate(0, i -> i < 5, i -> i + 1)
+         .forEach
+         (
+            i ->
+            {
+               
+               gImage.setStroke(new java.awt.BasicStroke(a));
+            
+               final int b = (a * i) + (a / 2);
+            
+               gImage.drawLine(b, b, b, b);
+            
+            }
+         )
+         ;
+   
+      gImage.setPaint(Color.BLUE);
+      // gImage.drawLine(0, 0, 0, 0);
+      // gImage.drawLine(2, 2, 2, 2);
+      // gImage.drawLine(4, 4, 4, 4);
+      // gImage.drawLine(6, 6, 6, 6);
    
       final BufferedImage bigImage = new BufferedImage(40, 40, BufferedImage.TYPE_INT_ARGB);
    
