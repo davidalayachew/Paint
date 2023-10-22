@@ -346,6 +346,8 @@ public class GUI
                      protected void paintComponent(final Graphics dontUse)
                      {
                      
+                        super.paintComponent(dontUse);
+                     
                         if (!(dontUse instanceof Graphics2D g))
                         {
                         
@@ -376,8 +378,10 @@ public class GUI
                            DRAW_SUBSECTION_OF_IMAGE:
                            {
                            
-                              final int x;
-                              final int y;
+                              final int originalImageX;
+                              final int zoomedInImageX;
+                              final int originalImageY;
+                              final int zoomedInImageY;
                            
                               CALCULATE_ORIGINAL_POSITION:
                               {
@@ -385,45 +389,53 @@ public class GUI
                                  final int quantizedX = quantize.applyAsInt(rectangle.x);
                                  final int quantizedY = quantize.applyAsInt(rectangle.y);
                               
-                                 x = Math.max(quantizedX, 0) / gui.screenToImagePixelRatio;
-                                 y = Math.max(quantizedY, 0) / gui.screenToImagePixelRatio;
+                                 zoomedInImageX = Math.max(quantizedX, 0);
+                                 originalImageX = zoomedInImageX / gui.screenToImagePixelRatio;
+                              
+                                 zoomedInImageY = Math.max(quantizedY, 0);
+                                 originalImageY = zoomedInImageY / gui.screenToImagePixelRatio;
                               
                               }
                            
-                              final int width;
-                              final int height;
+                              final int zoomedInImageWidth;
+                              final int originalImageWidth;
+                              final int zoomedInImageHeight;
+                              final int originalImageHeight;
                            
                               CALCULATE_ORIGINAL_DIMENSION:
                               {
                               
                                  final int minWidth = Math.min(rectangle.width, drawingArea.width);
                                  final int quantizedMinWidth = quantize.applyAsInt(minWidth);
-                                 final int potentialWidth = (quantizedMinWidth + gui.screenToImagePixelRatio) / gui.screenToImagePixelRatio;
-                                 width = Math.min(gui.image.getWidth(), potentialWidth);
+                                 final int potentialWidth = quantizedMinWidth + gui.screenToImagePixelRatio;
+                                 zoomedInImageWidth = Math.min(drawingArea.width, potentialWidth);
+                                 originalImageWidth = zoomedInImageWidth / gui.screenToImagePixelRatio;
                               
                                  final int minHeight = Math.min(rectangle.height, drawingArea.height);
                                  final int quantizedMinHeight = quantize.applyAsInt(minHeight);
-                                 final int potentialHeight = (quantizedMinHeight + gui.screenToImagePixelRatio) / gui.screenToImagePixelRatio;
-                                 height = Math.min(gui.image.getHeight(), potentialHeight);
+                                 final int potentialHeight = quantizedMinHeight + gui.screenToImagePixelRatio;
+                                 zoomedInImageHeight = Math.min(drawingArea.height, potentialHeight);
+                                 originalImageHeight = zoomedInImageHeight / gui.screenToImagePixelRatio;
                               
                               }
                            
                               g.setPaint(gui.cursorColor);
                            
+                              System.out.println(zoomedInImageX + " -- " + zoomedInImageY + " -- " + zoomedInImageWidth + " -- " + zoomedInImageHeight + " ---- " + originalImageX + " -- " + originalImageY + " -- " + originalImageWidth + " -- " + originalImageHeight + " ----- " + rectangle + " - " + drawingArea);
+                           
                               g
                                  .drawImage
                                  (
                                     gui.image,
-                                    0,
-                                    0,
-                                    drawingArea.width,
-                                    drawingArea.height,
-                                    0, 0, gui.image.getWidth(), gui.image.getHeight(),
-                                 //    x,
-                                 //    y,
-                                 //    width,
-                                 //    height,
-                                    gui.transparencyColor,
+                                    zoomedInImageX,
+                                    zoomedInImageY,
+                                    zoomedInImageX + zoomedInImageWidth,
+                                    zoomedInImageY + zoomedInImageHeight,
+                                    originalImageX,
+                                    originalImageY,
+                                    originalImageX + originalImageWidth,
+                                    originalImageY + originalImageHeight,
+                                    //gui.transparencyColor,
                                     null
                                  )
                                  ;
@@ -556,6 +568,9 @@ public class GUI
                            }
                         
                         }
+                     
+                     gui.drawingAreaScrollPane.repaint();
+                     gui.drawingAreaScrollPane.revalidate();
                      
                      }
                   
