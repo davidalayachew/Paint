@@ -569,8 +569,8 @@ public class GUI
                         
                         }
                      
-                     gui.drawingAreaScrollPane.repaint();
-                     gui.drawingAreaScrollPane.revalidate();
+                        // gui.drawingAreaScrollPane.repaint();
+                        // gui.drawingAreaScrollPane.revalidate();
                      
                      }
                   
