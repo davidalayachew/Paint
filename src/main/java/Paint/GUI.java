@@ -358,7 +358,8 @@ public class GUI
                         DRAW_DRAWN_PIXELS:
                         {
                         
-                           final Rectangle rectangle  = gui.drawingAreaScrollPane.getViewport().getViewRect();
+                           //final Rectangle rectangle  = gui.drawingAreaScrollPane.getViewport().getViewRect();
+                           final Rectangle rectangle  = g.getClipBounds();
                         
                            //We are only drawing a subsection because we may be working with GIGANTIC images.
                            //If we attempt to draw the whole image, performance will drop like a rock.
