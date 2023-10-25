@@ -8,7 +8,7 @@ Here is my priority list when it comes to building features.
 
 
 
-* SHOWSTOPPER -- PNG, GIF, Pen, Eraser, Zoom Options (Minimal), Pen Size, Color Chooser (INCLUDING INVISIBLE INK FOR PNG AND GIF AT LEAST), Save (image), Open (image)
+* SHOWSTOPPER -- PNG, GIF, Pen, Eraser, Zoom Options (Minimal), Pen Size, Color Chooser (INCLUDING INVISIBLE INK FOR PNG AND GIF AT LEAST), Save (image), Open (image), Cancel saving
 
 * MUST-HAVE -- Animations (GIF only for now), JPEG, Request Dimensions, Bucket, Eyedropper, Text, Rotation, Crop, Flip, Copy/Cut/Paste (whole image), Image and pixel metrics upon hover
 
