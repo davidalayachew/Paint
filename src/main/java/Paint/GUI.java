@@ -435,7 +435,7 @@ public class GUI
                                     originalImageY,
                                     originalImageX + originalImageWidth,
                                     originalImageY + originalImageHeight,
-                                    //gui.transparencyColor,
+                                    gui.transparencyColor,
                                     null
                                  )
                                  ;
@@ -617,7 +617,7 @@ public class GUI
                                  switch (gui.mouseDrawingMode)
                                  {
                                  
-                                    case COLORING  -> new GraphicsMetadata(gui.cursorColor, AlphaComposite.SrcOver);
+                                    case COLORING  -> new GraphicsMetadata(gui.cursorColor, AlphaComposite.Src);
                                     case ERASING   -> new GraphicsMetadata(CLEAR, AlphaComposite.SrcIn);
                                  
                                  }
@@ -626,7 +626,7 @@ public class GUI
                                  switch (gui.keyDrawingMode)
                                  {
                                  
-                                    case  COLORING -> new GraphicsMetadata(gui.cursorColor, AlphaComposite.SrcOver);
+                                    case  COLORING -> new GraphicsMetadata(gui.cursorColor, AlphaComposite.Src);
                                     case  ERASING  -> new GraphicsMetadata(CLEAR, AlphaComposite.SrcIn);
                                     case  NONE     -> throw new IllegalArgumentException();
                                  
