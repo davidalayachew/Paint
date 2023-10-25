@@ -706,17 +706,6 @@ public class GUI
                      {
                      
                         @Override
-                        public void mouseExited(final MouseEvent mouseEvent)
-                        {
-                        
-                           System.out.println("exited");
-                           //gui.cursorCurrentLocation.setLocation(OFF_SCREEN);
-                        
-                           REPAINT_DRAWING_PANEL.run();
-                        
-                        }
-                     
-                        @Override
                         public void mousePressed(final MouseEvent mouseEvent)
                         {
                         
@@ -744,8 +733,6 @@ public class GUI
                         @Override
                         public void mouseDragged(final MouseEvent mouseEvent)
                         {
-                        
-                           print(mouseEvent.getPoint().toString());
                         
                            performClick.accept(mouseEvent.getPoint(), new ClickMetaData(DrawingMode.MOUSE, true));
                         
@@ -1474,12 +1461,21 @@ public class GUI
                                        public void imageProgress(ImageWriter source, float percentageDone)
                                        {
                                        
-                                          publish(Math.round(percentageDone));
+                                          final var value = Math.round(percentageDone);
+                                       
+                                          publish(value);
                                        
                                        }
                                     
                                        @Override public void imageStarted(ImageWriter source, int imageIndex) {}
-                                       @Override public void imageComplete(ImageWriter source) {}
+                                       
+                                       @Override public void imageComplete(ImageWriter source)
+                                       {
+                                       
+                                          publish(100);
+                                       
+                                       }
+                                       
                                        @Override public void thumbnailStarted(ImageWriter source, int imageIndex, int thumbnailIndex) {}
                                        @Override public void thumbnailProgress(ImageWriter source, float percentageDone) {}
                                        @Override public void thumbnailComplete(ImageWriter source) {}
@@ -1525,8 +1521,6 @@ public class GUI
                         @Override
                         protected Void doInBackground()
                         {
-                        
-                           print("start");
                         
                            this.publish(0);
                         
@@ -1582,8 +1576,6 @@ public class GUI
                                  case  PNG   -> true;
                               }
                               ;
-                        
-                           print("canSaveCorrectly = " + canSaveCorrectly);
                         
                            if (!canSaveCorrectly)
                            {
@@ -1684,8 +1676,6 @@ public class GUI
                               this.publish(gui.image.getHeight() * gui.image.getWidth());
                            
                            }
-                        
-                           print("done");
                         
                            saveImageTask.execute();
                         
