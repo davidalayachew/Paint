@@ -358,7 +358,6 @@ public class GUI
                         DRAW_DRAWN_PIXELS:
                         {
                         
-                           //final Rectangle rectangle  = gui.drawingAreaScrollPane.getViewport().getViewRect();
                            final Rectangle rectangle  = g.getClipBounds();
                         
                            //We are only drawing a subsection because we may be working with GIGANTIC images.
@@ -422,7 +421,7 @@ public class GUI
                            
                               g.setPaint(gui.cursorColor);
                            
-                              System.out.println(zoomedInImageX + " -- " + zoomedInImageY + " -- " + zoomedInImageWidth + " -- " + zoomedInImageHeight + " ---- " + originalImageX + " -- " + originalImageY + " -- " + originalImageWidth + " -- " + originalImageHeight + " ----- " + rectangle + " - " + drawingArea);
+                              // System.out.println(zoomedInImageX + " -- " + zoomedInImageY + " -- " + zoomedInImageWidth + " -- " + zoomedInImageHeight + " ---- " + originalImageX + " -- " + originalImageY + " -- " + originalImageWidth + " -- " + originalImageHeight + " ----- " + rectangle + " - " + drawingArea);
                            
                               g
                                  .drawImage
@@ -570,9 +569,6 @@ public class GUI
                         
                         }
                      
-                        // gui.drawingAreaScrollPane.repaint();
-                        // gui.drawingAreaScrollPane.revalidate();
-                     
                      }
                   
                   }
@@ -585,23 +581,6 @@ public class GUI
                final BiConsumer<Point, ClickMetaData> performClick =
                   (maybeNewPoint, clickMetaData) ->
                   {
-                  
-                     if
-                     (
-                        maybeNewPoint.x < 0
-                        ||
-                        maybeNewPoint.x >= drawingArea.width
-                        ||
-                        maybeNewPoint.y < 0
-                        ||
-                        maybeNewPoint.y >= drawingArea.height
-                     )
-                     {
-                     
-                        gui.cursorCurrentLocation.setLocation(-1, -1);
-                        return;
-                     
-                     }
                   
                      final int zoomedInImageX = quantize.applyAsInt(maybeNewPoint.x);
                      final int zoomedInImageY = quantize.applyAsInt(maybeNewPoint.y);
@@ -701,22 +680,6 @@ public class GUI
                   (maybeNewPoint, drawingMode) ->
                   {
                   
-                     if
-                     (
-                        maybeNewPoint.x < 0
-                        ||
-                        maybeNewPoint.x >= drawingArea.width
-                        ||
-                        maybeNewPoint.y < 0
-                        ||
-                        maybeNewPoint.y >= drawingArea.height
-                     )
-                     {
-                     
-                        return;
-                     
-                     }
-                  
                      final int x = maybeNewPoint.x - (maybeNewPoint.x % gui.screenToImagePixelRatio);
                      final int y = maybeNewPoint.y - (maybeNewPoint.y % gui.screenToImagePixelRatio);
                   
@@ -747,7 +710,7 @@ public class GUI
                         {
                         
                            System.out.println("exited");
-                           gui.cursorCurrentLocation.setLocation(OFF_SCREEN);
+                           //gui.cursorCurrentLocation.setLocation(OFF_SCREEN);
                         
                            REPAINT_DRAWING_PANEL.run();
                         
@@ -781,6 +744,8 @@ public class GUI
                         @Override
                         public void mouseDragged(final MouseEvent mouseEvent)
                         {
+                        
+                           print(mouseEvent.getPoint().toString());
                         
                            performClick.accept(mouseEvent.getPoint(), new ClickMetaData(DrawingMode.MOUSE, true));
                         
