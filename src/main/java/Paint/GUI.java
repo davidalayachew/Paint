@@ -116,9 +116,9 @@ public class GUI
 
    public static final int ARBITRARY_VIEW_BUFFER = 200;
    private static final int MIN_PEN_SIZE = 1;
-   private static final int MAX_PEN_SIZE = 10;
+   private static final int MAX_PEN_SIZE = 100;
    private static final int MIN_SCREEN_TO_IMAGE_PIXEL_RATIO = 1;
-   private static final int MAX_SCREEN_TO_IMAGE_PIXEL_RATIO = 30;
+   private static final int MAX_SCREEN_TO_IMAGE_PIXEL_RATIO = 300;
    private static final int DEFAULT_IMAGE_PIXEL_ROWS = 26;
    private static final int DEFAULT_IMAGE_PIXEL_COLUMNS = 24;
 
@@ -479,7 +479,7 @@ public class GUI
                                     )
                                     ;
                               
-                                 g.setStroke(new java.awt.BasicStroke(screenPixelCursorSize));
+                                 g.setStroke(GUI.createStroke(screenPixelCursorSize));
                               
                                  final int transform = gui.screenToImagePixelRatio / 2;
                               
@@ -509,7 +509,7 @@ public class GUI
                               {
                               
                                  g.setPaint(gui.gridLinesColor);
-                                 g.setStroke(new java.awt.BasicStroke(1));
+                                 g.setStroke(GUI.createStroke(1));
                               
                                  IntStream
                                     .range(rectangle.y, rectangle.y + rectangle.height)
@@ -639,7 +639,7 @@ public class GUI
                      graphics.setPaint(graphicsMetadata.someColor());
                      graphics.setComposite(graphicsMetadata.alphaComposite());
                   
-                     graphics.setStroke(new java.awt.BasicStroke(gui.penSize));
+                     graphics.setStroke(GUI.createStroke(gui.penSize));
                   
                      if
                      (
@@ -1717,6 +1717,22 @@ public class GUI
          (
             this.image.getWidth() * this.screenToImagePixelRatio,
             this.image.getHeight() * this.screenToImagePixelRatio
+         )
+         ;
+   
+   }
+
+   private static java.awt.BasicStroke createStroke(final int width)
+   {
+   
+      return
+         new java.awt.BasicStroke
+         (
+            width,
+            java.awt.BasicStroke.CAP_SQUARE,
+            // java.awt.BasicStroke.JOIN_BEVEL
+            java.awt.BasicStroke.JOIN_ROUND,
+            0.1f
          )
          ;
    
