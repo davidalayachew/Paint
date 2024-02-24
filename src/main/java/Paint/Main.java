@@ -16,7 +16,7 @@ public class Main
    
       System.out.println("Paint");
    
-      javax.swing.SwingUtilities.invokeLater(() -> new GUI(10_000, 10_000));
+      javax.swing.SwingUtilities.invokeLater(() -> new GUI(5_000, 5_000));
       //javax.swing.SwingUtilities.invokeLater(() -> new GUI(20, 20));
    
    }
