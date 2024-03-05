@@ -157,20 +157,6 @@ public class GUI
    
       Objects.requireNonNull(image);
    
-      try
-      {
-      
-         UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName());
-      
-      }
-      
-      catch (Exception e)
-      {
-      
-         throw new RuntimeException(e);
-      
-      }
-   
       INITALIZING_METADATA_INSTANCE_FIELDS:
       {
       
