@@ -21,7 +21,8 @@ public class Main
       // UIManager.setLookAndFeel("javax.swing.plaf.nimbus.NimbusLookAndFeel");
       // UIManager.setLookAndFeel("com.sun.java.swing.plaf.motif.MotifLookAndFeel");
    
-      javax.swing.SwingUtilities.invokeLater(() -> new GUI(5_000, 5_000));
+      javax.swing.SwingUtilities.invokeLater(() -> new GUI());
+      // javax.swing.SwingUtilities.invokeLater(() -> new GUI(5_000, 5_000));
       //javax.swing.SwingUtilities.invokeLater(() -> new GUI(20, 20));
    
    }

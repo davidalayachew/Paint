@@ -141,7 +141,73 @@ public class GUI
    public GUI()
    {
    
-      this(DEFAULT_IMAGE_PIXEL_ROWS, DEFAULT_IMAGE_PIXEL_COLUMNS);
+      final SpinnerNumberModel spinnerNumberModel = new SpinnerNumberModel();
+   
+      spinnerNumberModel.setMinimum(1);
+      spinnerNumberModel.setMaximum(10_000);
+      spinnerNumberModel.setStepSize(1);
+   
+      final JSpinner spinner = new JSpinner(spinnerNumberModel);
+   
+      final int requestedNumRows;
+   
+      ROWS:
+      {
+      
+         spinnerNumberModel.setValue(DEFAULT_IMAGE_PIXEL_ROWS);
+      
+         final int dialogCloseOption =
+            JOptionPane
+               .showConfirmDialog
+               (
+                  null,
+                  spinner,
+                  "How many image pixel rows?",
+                  JOptionPane.OK_CANCEL_OPTION
+               )
+               ;
+      
+         if (JOptionPane.OK_OPTION != dialogCloseOption)
+         {
+         
+            throw new IllegalArgumentException("User did not press OK");
+         
+         }
+      
+         requestedNumRows = (int) spinnerNumberModel.getValue();
+      
+      }
+   
+      final int requestedNumColumns;
+   
+      COLUMNS:
+      {
+      
+         spinnerNumberModel.setValue(DEFAULT_IMAGE_PIXEL_COLUMNS);
+      
+         final int dialogCloseOption =
+            JOptionPane
+               .showConfirmDialog
+               (
+                  null,
+                  spinner,
+                  "How many image pixel columns?",
+                  JOptionPane.OK_CANCEL_OPTION
+               )
+               ;
+      
+         if (JOptionPane.OK_OPTION != dialogCloseOption)
+         {
+         
+            throw new IllegalArgumentException("User did not press OK");
+         
+         }
+      
+         requestedNumColumns = (int) spinnerNumberModel.getValue();
+      
+      }
+   
+      this(requestedNumRows, requestedNumColumns);
    
    }
 
@@ -1454,14 +1520,14 @@ public class GUI
                                        }
                                     
                                        @Override public void imageStarted(ImageWriter source, int imageIndex) {}
-                                       
+                                    
                                        @Override public void imageComplete(ImageWriter source)
                                        {
                                        
                                           publish(100);
                                        
                                        }
-                                       
+                                    
                                        @Override public void thumbnailStarted(ImageWriter source, int imageIndex, int thumbnailIndex) {}
                                        @Override public void thumbnailProgress(ImageWriter source, float percentageDone) {}
                                        @Override public void thumbnailComplete(ImageWriter source) {}
