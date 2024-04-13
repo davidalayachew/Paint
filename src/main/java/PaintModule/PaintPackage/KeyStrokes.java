@@ -1,10 +1,10 @@
 
-package Paint;
+package PaintPackage;
 
 import javax.swing.KeyStroke;
 import java.awt.event.KeyEvent;
 
-public interface KeyStrokes
+public final class KeyStrokes
 {
 
    public static final KeyStroke NUMPAD_UP              = KeyStroke.getKeyStroke(KeyEvent.VK_KP_UP,        0, false );
@@ -46,5 +46,12 @@ public interface KeyStrokes
    public static final KeyStroke S                      = KeyStroke.getKeyStroke(KeyEvent.VK_S,            0, false );
    public static final KeyStroke A                      = KeyStroke.getKeyStroke(KeyEvent.VK_A,            0, false );
    public static final KeyStroke D                      = KeyStroke.getKeyStroke(KeyEvent.VK_D,            0, false );
+
+   private KeyStrokes()
+   {
+   
+      throw new UnsupportedOperationException("Do not instantiate.");
+   
+   }
 
 }

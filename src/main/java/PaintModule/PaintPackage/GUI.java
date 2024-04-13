@@ -1,5 +1,5 @@
 
-package Paint;
+package PaintPackage;
 
 import javax.imageio.*;
 import javax.imageio.event.*;
@@ -27,7 +27,7 @@ import java.util.concurrent.*;
 import java.util.function.*;
 import java.util.stream.*;
 
-import static Paint.KeyStrokes.*;
+import static PaintPackage.KeyStrokes.*;
 
 public class GUI
 {
@@ -254,8 +254,10 @@ public class GUI
       final JMenu file = new JMenu("File");
    
       final JMenuItem save = this.createSaveMenuItem();
+      final JMenuItem open = this.createOpenMenuItem();
    
       file.add(save);
+      file.add(open);
    
       menuBar.add(file);
    
@@ -1186,50 +1188,6 @@ public class GUI
          
          }
       
-         final JButton openImageButton;
-      
-         OPEN_IMAGE_BUTTON:
-         {
-         
-            openImageButton = new JButton();
-         
-            openImageButton.setText("Open Image");
-         
-            openImageButton
-               .addActionListener
-               (
-                  event ->
-                  {
-                  
-                     fileChooser.showOpenDialog(this.frame);
-                  
-                     if (fileChooser.getSelectedFile() instanceof final File newImageFile)
-                     {
-                     
-                        try
-                        {
-                        
-                           final BufferedImage newImage = ImageIO.read(newImageFile);
-                        
-                           new GUI(newImage);
-                        
-                        }
-                        
-                        catch (final Exception e)
-                        {
-                        
-                           throw new RuntimeException(e);
-                        
-                        }
-                     
-                     }
-                  
-                  }
-               )
-               ;
-         
-         }
-      
          drawingSettingsPanel.add(Box.createHorizontalGlue());
          drawingSettingsPanel.add(screenToImagePixelRatioDropDownMenu);
          drawingSettingsPanel.add(new JLabel("SCREEN pixels = 1 IMAGE pixel"));
@@ -1242,8 +1200,6 @@ public class GUI
          drawingSettingsPanel.add(Box.createHorizontalStrut(10));
          drawingSettingsPanel.add(mouseDrawingModeDropDownMenu);
          drawingSettingsPanel.add(new JLabel("Mouse Drawing Mode"));
-         drawingSettingsPanel.add(Box.createHorizontalStrut(10));
-         drawingSettingsPanel.add(openImageButton);
          drawingSettingsPanel.add(Box.createHorizontalGlue());
       
       }
@@ -1718,6 +1674,8 @@ public class GUI
                                  )
                                  ;
                            
+                              loadingScreen.dispose();
+                           
                               return null;
                            
                            }
@@ -1752,6 +1710,213 @@ public class GUI
    
       return saveMenuItem;
    
+   }
+
+   private JMenuItem createOpenMenuItem()
+   {
+   
+      final GUI gui = this;
+   
+      final JMenuItem openMenuItem;
+      
+      final Action openImageAction;
+      
+      abstract class ProgressBarTask extends SwingWorker<Void, Integer>
+      {
+         
+         private final JProgressBar progressBar;
+         private final String prefix;
+         
+         public ProgressBarTask(final JProgressBar progressBar, final String prefix)
+         {
+            
+            this.progressBar = Objects.requireNonNull(progressBar);
+            this.prefix = Objects.requireNonNull(prefix);
+            this.publish(0);
+            
+         }
+         
+         @Override
+         protected void process(final List<Integer> chunks)
+         {
+            
+            this.progressBar.setStringPainted(true);
+            
+            for (final Integer each : chunks)
+            {
+               
+               this.progressBar.setValue(each);
+               
+               final double percentComplete = this.progressBar.getPercentComplete() * 100;
+               
+               final String string = this.prefix + " --- " + percentComplete + "%";
+               this.progressBar.setString(string);
+               
+            }
+            
+         }
+         
+      }
+      
+      openImageAction = 
+         new AbstractAction("Open Image")
+         {
+            
+            public void actionPerformed(final ActionEvent event)
+            {
+               
+               final JDialog loadingScreen;
+               final JProgressBar openingImageProgressBar;
+               
+               CREATE_LOADING_SCREEN:
+               {
+                  
+                  loadingScreen = new JDialog(gui.frame, true);
+                  
+                  final JPanel loadingScreenPanel = new JPanel();
+                  loadingScreenPanel.setLayout(new BoxLayout(loadingScreenPanel, BoxLayout.PAGE_AXIS));
+                  
+                  openingImageProgressBar     = new JProgressBar();
+                  
+                  loadingScreenPanel.add(openingImageProgressBar);
+                  
+                  loadingScreen.add(loadingScreenPanel);
+                  
+               }
+               
+               TASKS:
+               {
+                  
+                  if (gui.fileChooser.showOpenDialog(loadingScreen) != JFileChooser.APPROVE_OPTION)
+                  {
+                     
+                     return;
+                     
+                  }
+                  
+                  final ProgressBarTask openImageTask =
+                        new ProgressBarTask(openingImageProgressBar, "Opening Image")
+                        {
+                        
+                           @Override
+                           protected Void doInBackground()
+                           {
+                           
+                              final BufferedImage finalImage;
+                           
+                              try
+                              {
+                              
+                                 if (!(gui.fileChooser.getFileFilter() instanceof final FileNameExtensionFilter filter))
+                                 {
+                                 
+                                    throw new IllegalArgumentException("BAD TYPE");
+                                 
+                                 }
+                              
+                                 final String fileExtension = filter.getExtensions()[0];
+                              
+                                 final String rawFileName = Objects.requireNonNull(gui.fileChooser.getSelectedFile()).getAbsolutePath();
+                              
+                                 final File inputFile =
+                                    new File
+                                    (
+                                    rawFileName.endsWith("." + fileExtension)
+                                    ? rawFileName
+                                    : rawFileName + "." + fileExtension
+                                    )
+                                    ;
+                              
+                                 final ImageReader imageReader = ImageIO.getImageReadersByFormatName(fileExtension).next();
+                              
+                                 imageReader
+                                    .addIIOReadProgressListener
+                                    (
+                                    new IIOReadProgressListener()
+                                    {
+                                    
+                                       @Override public void imageStarted(final ImageReader source, final int imageIndex) {}
+                                    
+                                       @Override
+                                       public void imageProgress(final ImageReader source, float percentageDone)
+                                       {
+                                       
+                                          final var value = Math.round(percentageDone);
+                                       
+                                          publish(value);
+                                       
+                                       }
+                                    
+                                       @Override public void imageComplete(final ImageReader source)
+                                       {
+                                       
+                                          publish(100);
+                                       
+                                       }
+                                    
+                                       @Override public void sequenceStarted(final ImageReader source, final int imageIndex) {}
+                                       @Override public void sequenceComplete(final ImageReader source) {}
+                                       @Override public void thumbnailStarted(ImageReader source, int imageIndex, int thumbnailIndex) {}
+                                       @Override public void thumbnailProgress(ImageReader source, float percentageDone) {}
+                                       @Override public void thumbnailComplete(ImageReader source) {}
+                                       @Override public void readAborted(ImageReader source) {}
+                                    
+                                    }
+                                    )
+                                    ;
+                              
+                                 try (var imageInputStream = ImageIO.createImageInputStream(inputFile))
+                                 {
+                                 
+                                    imageReader.setInput(imageInputStream);
+                                 
+                                    loadingScreen.setVisible(true);
+                                    
+                                    finalImage = imageReader.read(0);
+                                    
+                                    final GUI openedImageGUI = new GUI(finalImage);
+                                    
+                                    JOptionPane.showMessageDialog(loadingScreen, inputFile.getAbsolutePath() + " has finished loading.");
+                                 
+                                    loadingScreen.dispose();
+                                    
+                                    openedImageGUI.frame.toFront();
+                                 
+                                 }
+                              
+                              }
+                              
+                              catch (final Exception e)
+                              {
+                              
+                                 throw new RuntimeException(e);
+                              
+                              }
+                           
+                              return null;
+                           
+                           }
+                        
+                        }
+                        ;
+                  
+                  loadingScreen.setSize(300, 200);
+                  
+                  openImageTask.execute();
+                  
+                  loadingScreen.setVisible(true);
+                  
+               }
+               
+            }
+            
+         }
+         ;
+      
+      openMenuItem = new JMenuItem(openImageAction);
+      
+      return openMenuItem;
+      
    }
 
    private static void print(final String text)

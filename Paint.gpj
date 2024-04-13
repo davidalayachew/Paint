@@ -1,10 +1,9 @@
-!1904;s
+!1860;s
 J
 SAU0JGRASP_MAIN_BOUNDS=%<CONTROL_SHELL_BOUNDS>\012PATH+=%<JGRASP_PATHS>%;\012PATH=+%;%<JGRASP_C_PATHS>\012CYGWIN=nodosfilewarning\012GCC_COLORS=\012-Run\012ADD_EXE_PATH==Y\012
 SCU0JGRASP_MAIN_BOUNDS=%<CONTROL_SHELL_BOUNDS>\012PATH+=%<JGRASP_PATHS>%;\012PATH=+%;%<JGRASP_C_PATHS>\012CYGWIN=nodosfilewarning\012GCC_COLORS=\012-Run\012ADD_EXE_PATH==Y\012
 S+U0JGRASP_MAIN_BOUNDS=%<CONTROL_SHELL_BOUNDS>\012PATH+=%<JGRASP_PATHS>%;\012PATH=+%;%<JGRASP_C_PATHS>\012CYGWIN=nodosfilewarning\012GCC_COLORS=\012-Run\012ADD_EXE_PATH==Y\012
 SJU0JGRASP_MAIN_BOUNDS=%<CONTROL_SHELL_BOUNDS>\012CLASSPATH=+%;%<EXTENSION_CLASSPATHS>\012CLASSPATH+=%<JGRASP_CLASSPATHS>%;\012CLASSPATH+=.%;\012CLASSPATH+=%<TARGET_CLASSPATHS>%;\012Compile +Document\012CLASSPATH+=%<SRC_CLASSPATHS>%;\012All\012PATH+=%<JAVA_BIN_DIR>%;\012PATH+=%<JGRASP_PATHS>%;\012Debug\012CLASSPATH=+%;%<INJECTION_CLASSPATHS>\012Compile\012NOT_FOUND_MESSAGE==Make sure you have the full Java SE, not just the JRE, installed.\\nJava is available from https://www.oracle.com/java/technologies .\012Document\012CLASSPATH=+%;%<TOOL_CLASSPATHS>\012
-SJT0%<PROJECT_PATH>%\\src%\\main%\\java%\\Paint%\\Main.java
 SKU0CLASSPATH=+%;%<EXTENSION_CLASSPATHS>\012CLASSPATH+=%<JGRASP_CLASSPATHS>%;\012CLASSPATH+=.%;\012CLASSPATH+=%<TARGET_CLASSPATHS>%;\012Compile +Document\012CLASSPATH+=%<SRC_CLASSPATHS>%;\012All\012PATH+=%<JAVA_BIN_DIR>%;\012PATH+=%<JGRASP_PATHS>%;
 SXU0
 SOU0JGRASP_MAIN_BOUNDS=%<CONTROL_SHELL_BOUNDS>\012PATH+=%<JGRASP_PATHS>%;\012PATH=+%;%<JGRASP_C_PATHS>\012CYGWIN=nodosfilewarning\012GCC_COLORS=\012-Run\012ADD_EXE_PATH==Y\012
@@ -14,7 +13,7 @@ s#i0
 s#k0
 s#j0
 s#l0
-s#m0src/main/java
+s#m0src/main/java/PaintModule
 s#n0classes
 s#o0ignore/temp
 s#p0ignore/doc
@@ -22,18 +21,16 @@ s#s0src/main/resources
 s#q0src/test/java
 s#r0run/jGRASP_binaries
 s#t0ignore/help
-s#w0canvases
-!217;g
-%\011src%smain%sjava%sPaint%sGUI.java
-%\011src%smain%sjava%smodule-info.java
-%\011src%smain%sjava%sPaint%sDarkMetalHighContrast.java
-%\011src%smain%sjava%sPaint%sMain.java
-%\011src%smain%sjava%sPaint%sKeyStrokes.java
-!217;f
-%\011src%smain%sjava%sPaint%sGUI.java
-%\011src%smain%sjava%smodule-info.java
-%\011src%smain%sjava%sPaint%sDarkMetalHighContrast.java
-%\011src%smain%sjava%sPaint%sMain.java
-%\011src%smain%sjava%sPaint%sKeyStrokes.java
-!21;m
-RunSelect	Paint.Main
+s#w0debug/canvas
+!310;g
+%\011src%smain%sjava%sPaintModule%sPaintPackage%sKeyStrokes.java
+%\011src%smain%sjava%sPaintModule%sPaintPackage%sMain.java
+%\011src%smain%sjava%sPaintModule%sPaintPackage%sDarkMetalHighContrast.java
+%\011src%smain%sjava%sPaintModule%sPaintPackage%sGUI.java
+%\011src%smain%sjava%sPaintModule%smodule-info.java
+!310;f
+%\011src%smain%sjava%sPaintModule%sPaintPackage%sKeyStrokes.java
+%\011src%smain%sjava%sPaintModule%sPaintPackage%sMain.java
+%\011src%smain%sjava%sPaintModule%sPaintPackage%sDarkMetalHighContrast.java
+%\011src%smain%sjava%sPaintModule%sPaintPackage%sGUI.java
+%\011src%smain%sjava%sPaintModule%smodule-info.java

@@ -1,5 +1,5 @@
 
-package Paint;
+package PaintPackage;
 
 import javax.swing.plaf.ColorUIResource;
 import javax.swing.plaf.metal.DefaultMetalTheme;

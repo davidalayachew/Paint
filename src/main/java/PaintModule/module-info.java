@@ -1,5 +1,5 @@
 
-module io.github.davidalayachew.Paint
+module PaintModule
 {
 
    requires java.base;
