@@ -1415,14 +1415,7 @@ public class GUI
                   
                   }
                
-                  final BufferedImage finalImage =
-                     new BufferedImage
-                     (
-                        gui.image.getWidth(),
-                        gui.image.getHeight(),
-                        BufferedImage.TYPE_INT_ARGB
-                     )
-                     ;
+                  final BufferedImage finalImage = gui.image;
                
                   final ProgressBarTask saveImageTask =
                      new ProgressBarTask(savingImageProgressBar, "Saving Image")
