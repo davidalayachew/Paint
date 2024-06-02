@@ -1,5 +1,5 @@
-!1860;s
-J
+!1874;s
+A
 SAU0JGRASP_MAIN_BOUNDS=%<CONTROL_SHELL_BOUNDS>\012PATH+=%<JGRASP_PATHS>%;\012PATH=+%;%<JGRASP_C_PATHS>\012CYGWIN=nodosfilewarning\012GCC_COLORS=\012-Run\012ADD_EXE_PATH==Y\012
 SCU0JGRASP_MAIN_BOUNDS=%<CONTROL_SHELL_BOUNDS>\012PATH+=%<JGRASP_PATHS>%;\012PATH=+%;%<JGRASP_C_PATHS>\012CYGWIN=nodosfilewarning\012GCC_COLORS=\012-Run\012ADD_EXE_PATH==Y\012
 S+U0JGRASP_MAIN_BOUNDS=%<CONTROL_SHELL_BOUNDS>\012PATH+=%<JGRASP_PATHS>%;\012PATH=+%;%<JGRASP_C_PATHS>\012CYGWIN=nodosfilewarning\012GCC_COLORS=\012-Run\012ADD_EXE_PATH==Y\012
@@ -14,14 +14,14 @@ s#k0
 s#j0
 s#l0
 s#m0src/main/java/PaintModule
-s#n0classes
+s#n0classes/PaintModule
 s#o0ignore/temp
 s#p0ignore/doc
 s#s0src/main/resources
 s#q0src/test/java
 s#r0run/jGRASP_binaries
 s#t0ignore/help
-s#w0debug/canvas
+s#w0debug/canvases
 !310;g
 %\011src%smain%sjava%sPaintModule%sPaintPackage%sKeyStrokes.java
 %\011src%smain%sjava%sPaintModule%sPaintPackage%sMain.java
